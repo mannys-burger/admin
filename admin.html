@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manny's POS - لوحة التحكم الشاملة</title>
+    <style>
+        body { font-family: Tahoma, Arial; background: #f2f4f7; padding: 20px; margin: 0; color: #222; }
+        .header { text-align: center; background: #222; color: #f0a500; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;}
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
+        .tab-btn { flex: 1; padding: 15px; font-size: 16px; font-weight: bold; background: #ddd; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; min-width: 120px;}
+        .tab-btn.active { background: #f0a500; color: #222; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Filters */
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;}
+        .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 150px;}
+
+        /* Orders */
+        .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .order-card.new { border-color: #dc3545; box-shadow: 0 0 10px rgba(220,53,69,0.2); }
+        .order-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .status-badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        .btn { padding: 8px 15px; margin: 2px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white;}
+        .btn-prep { background: #f0a500; color: #222; }
+        .btn-done { background: #28a745; }
+        .btn-cancel { background: #dc3545; }
+        .btn-print { background: #333; color: white; width: 100%; margin-top: 10px; }
+        .details { white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 14px; line-height: 1.6; }
+        
+        /* Menu Control */
+        .menu-table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        .menu-table th, .menu-table td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        .menu-table th { background: #222; color: #f0a500; }
+        .toggle-btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 80px;}
+        .toggle-on { background: #28a745; color: white; }
+        .toggle-off { background: #dc3545; color: white; }
+
+        /* Analytics */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;}
+        .stat-card { background: white; padding: 20px; text-align: center; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #f0a500; }
+        .stat-val { font-size: 30px; font-weight: bold; margin-top: 10px; color: #222; }
+        .excel-btn { background: #28a745; color: white; width: 100%; padding: 15px; font-size: 18px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; margin-bottom: 20px;}
+        
+        /* Heatmap */
+        .heatmap-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        #sound-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
+        #sound-btn.active { background: #28a745; animation: none; }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🍔 Manny's POS System</h1>
+        <div>
+            <button id="sound-btn" onclick="enableSound()">🔕 تفعيل جرس الطلبات</button>
+            <button class="btn btn-prep" onclick="fetchOrders()" style="font-size: 16px;">🔄 تحديث (Refresh)</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-orders', this)">📦 الطلبات المباشرة</button>
+        <button class="tab-btn" onclick="switchTab('tab-menu', this)">🧾 إدارة المنيو</button>
+        <button class="tab-btn" onclick="switchTab('tab-stats', this)">📈 الإحصائيات والتقارير</button>
+    </div>
+
+    <!-- شاشة الطلبات -->
+    <div id="tab-orders" class="tab-content active">
+        <div class="filters">
+            <select id="filter-branch" onchange="renderOrders()">
+                <option value="all">📍 كل الفروع</option>
+                <option value="فيصل">فرع فيصل</option>
+                <option value="خليج نعمة">فرع شرم (نعمة)</option>
+                <option value="خليج نبق">فرع شرم (نبق)</option>
+            </select>
+            <select id="filter-status" onchange="renderOrders()">
+                <option value="all">🚦 كل الحالات</option>
+                <option value="جديد">🔴 جديد فقط</option>
+                <option value="التجهيز">⏳ جاري التجهيز</option>
+                <option value="للتوصيل">🛵 خرج للتوصيل</option>
+            </select>
+        </div>
+        <div id="orders-container"><h3 style="text-align: center;">جاري تحميل الأوردرات...</h3></div>
+    </div>
+
+    <!-- شاشة المنيو -->
+    <div id="tab-menu" class="tab-content">
+        <div id="menu-container"><h3 style="text-align: center;">جاري تحميل المنيو...</h3></div>
+    </div>
+
+    <!-- شاشة الإحصائيات -->
+    <div id="tab-stats" class="tab-content">
+        <button class="excel-btn" onclick="exportToExcel()">💾 تحميل تقفيل اليوم (Excel / CSV)</button>
+        
+        <div class="stats-grid">
+            <div class="stat-card"><h3>إجمالي المبيعات 💰</h3><div id="stat-revenue" class="stat-val">0 LE</div></div>
+            <div class="stat-card"><h3>إجمالي الطلبات 📦</h3><div id="stat-count" class="stat-val">0</div></div>
+            <div class="stat-card"><h3>الطلبات المكتملة ✅</h3><div id="stat-done" class="stat-val">0</div></div>
+            <div class="stat-card"><h3>الطلبات الملغية ❌</h3><div id="stat-canceled" class="stat-val">0</div></div>
+        </div>
+
+        <div class="heatmap-container">
+            <h2 style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">⏰ أوقات الذروة (Heatmap)</h2>
+            <p style="text-align: center; color: #555; font-size: 14px;">اعرف أكتر ساعات بيجيلك فيها أوردرات عشان تركز إعلاناتك فيها</p>
+            <div id="heatmap-chart" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- ملف الصوت المخفي للجرس -->
+    <audio id="order-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        // ⚠️⚠️ حط اللينك الجديد بتاع جوجل سكريبت هنا ⚠️⚠️
+        const API_URL = "https://script.google.com/macros/s/AKfycbwbPwWjEMhlzr_lY2grRw7_WtTWoTLbBrVlJnjIOTyXV3GPolV0LtTXX7jWH42k_IqVag/exec";
+        
+        let allOrders = [];
+        let lastOrderCount = 0;
+        let soundEnabled = false;
+
+        // ================= التبويبات =================
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+
+            if(tabId === 'tab-menu' && document.getElementById('menu-container').innerHTML.includes('جاري')) fetchAdminMenu();
+        }
+
+        // ================= جرس الطلبات =================
+        function enableSound() {
+            soundEnabled = true;
+            let btn = document.getElementById("sound-btn");
+            btn.classList.add("active");
+            btn.innerText = "🔔 الجرس مفعل";
+            document.getElementById("order-sound").play().catch(()=>{}); 
+        }
+
+        function playRing() {
+            if(soundEnabled) {
+                let audio = document.getElementById("order-sound");
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("الصوت مقفول"));
+            }
+        }
+
+        // ================= الأوردرات والفلترة =================
+        async function fetchOrders() {
+            try {
+                let response = await fetch(API_URL + "?action=getOrders");
+                let orders = await response.json();
+                
+                let newOrdersList = orders.filter(o => o.Status && o.Status.includes("جديد"));
+                if (orders.length > lastOrderCount && newOrdersList.length > 0) {
+                    playRing();
+                }
+                lastOrderCount = orders.length;
+                allOrders = orders;
+                
+                renderOrders();
+                calculateStats();
+                renderHeatmap();
+            } catch(e) {
+                document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>";
+            }
+        }
+
+        function renderOrders() {
+            let branchFilter = document.getElementById('filter-branch').value;
+            let statusFilter = document.getElementById('filter-status').value;
+            let container = document.getElementById("orders-container");
+
+            let filteredOrders = allOrders.filter(order => {
+                let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
+                let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
+                return matchBranch && matchStatus;
+            });
+
+            if (filteredOrders.length === 0) {
+                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للبحث 🍔</h3>";
+                return;
+            }
+
+            let html = "";
+            filteredOrders.forEach(order => {
+                let isNew = order.Status.includes("جديد");
+                let statusColor = "#ccc";
+                if(isNew) statusColor = "#dc3545"; 
+                else if(order.Status.includes("تجهيز")) statusColor = "#f0a500"; 
+                else if(order.Status.includes("توصيل")) statusColor = "#28a745"; 
+
+                // تم إضافة رقم الطلب (OrderID)
+                html += `
+                <div class="order-card ${isNew ? 'new' : ''}">
+                    <div class="order-header">
+                        <div>
+                            <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold; font-size:12px;">${order.OrderID || 'بدون كود'}</span>
+                            <br><strong># العميل:</strong> ${order.Name} - ${order.Phone} 
+                            <br><small>🕒 ${order.Date}</small>
+                        </div>
+                        <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
+                    </div>
+                    <div><strong>📍 الفرع:</strong> ${order.Branch}</div>
+                    <div><strong>🏠 العنوان:</strong> ${order.Address}</div>
+                    
+                    <div class="details">${order.Details}</div>
+                    ${order.Notes ? `<div style="color:red; font-weight:bold;">📝 ملاحظة: ${order.Notes}</div>` : ''}
+                    
+                    <div style="font-size: 18px; font-weight: bold; color: #d35400; margin-top: 10px;">💰 الإجمالي: ${order.Total} LE</div>
+                    
+                    <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                    <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
+                        <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
+                        <button class="btn btn-done" onclick="changeStatus(${order.row}, 'خرج للتوصيل 🛵')">🛵 تم التوصيل</button>
+                        <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
+                    </div>
+                    <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون المطبخ</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function changeStatus(row, newStatus) {
+            try {
+                await fetch(API_URL + "?action=updateOrder&row=" + row + "&status=" + encodeURIComponent(newStatus));
+                fetchOrders(); 
+            } catch(e) { alert("حصلت مشكلة في تحديث الحالة"); }
+        }
+
+        // ================= طباعة البون =================
+        function printReceipt(rowId) {
+            let order = allOrders.find(o => o.row === rowId);
+            if(!order) return;
+
+            let printWin = window.open('', '', 'width=400,height=600');
+            printWin.document.write(`
+                <html dir="rtl">
+                <head><title>Print</title>
+                <style>
+                    body { font-family: Tahoma, sans-serif; margin: 0; padding: 10px; font-size: 14px; width: 80mm; color: #000; }
+                    h2 { text-align: center; margin: 5px 0; font-size: 22px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                    .line { border-bottom: 1px dashed #000; margin: 10px 0; }
+                    .bold { font-weight: bold; }
+                </style>
+                </head>
+                <body>
+                    <h2>Manny's Burger</h2>
+                    <div style="text-align:center; font-weight:bold; font-size:16px;">فرع ${order.Branch}</div>
+                    <div style="text-align:center; margin-top:5px; font-size:14px; font-weight:bold; border:1px solid #000; padding:3px;">${order.OrderID || ''}</div>
+                    <div class="line"></div>
+                    <div><span class="bold">الوقت:</span> ${order.Date}</div>
+                    <div><span class="bold">العميل:</span> ${order.Name}</div>
+                    <div><span class="bold">الموبايل:</span> ${order.Phone}</div>
+                    <div><span class="bold">العنوان:</span> ${order.Address}</div>
+                    <div class="line"></div>
+                    <pre style="font-family: Tahoma; white-space: pre-wrap; margin:0; font-size:15px; font-weight:bold;">${order.Details}</pre>
+                    ${order.Notes ? `<div class="line"></div><div class="bold">ملاحظات:</div><div>${order.Notes}</div>` : ''}
+                    <div class="line"></div>
+                    <h3 style="text-align:center; font-size:20px; margin:5px 0;">الإجمالي: ${order.Total} LE</h3>
+                    <div class="line"></div>
+                    <div style="text-align:center; font-size:12px;">شكرًا لاختياركم مانيز برجر</div>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => { printWin.print(); printWin.close(); }, 800);
+        }
+
+        // ================= إدارة المنيو =================
+        async function fetchAdminMenu() {
+            try {
+                let response = await fetch(API_URL + "?action=getMenuAdmin");
+                let menu = await response.json();
+                
+                let html = `<table class="menu-table">
+                    <tr><th>الصنف</th><th>فيصل</th><th>شرم (نعمة)</th><th>شرم (نبق)</th></tr>`;
+                
+                function isAvail(val) {
+                    if (val === undefined || val === null) return true;
+                    let str = String(val).trim().toLowerCase();
+                    return !(str === "false" || str === "0" || str === "لا" || str === "");
+                }
+
+                menu.forEach(item => {
+                    let avFaisal = isAvail(item.Available_Faisal !== undefined ? item.Available_Faisal : item.Available);
+                    let avNaama = isAvail(item.Available_SharmNaama !== undefined ? item.Available_SharmNaama : item.Available);
+                    let avNabq = isAvail(item.Available_SharmNabq !== undefined ? item.Available_SharmNabq : item.Available);
+
+                    html += `<tr>
+                        <td><strong>${item.Name || 'بدون اسم'}</strong><br><small>${item.Category || ''}</small></td>
+                        <td><button class="toggle-btn ${avFaisal ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'Faisal', ${!avFaisal}, this)">${avFaisal ? 'متاح ✅':'مقفول ❌'}</button></td>
+                        <td><button class="toggle-btn ${avNaama ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'SharmNaama', ${!avNaama}, this)">${avNaama ? 'متاح ✅':'مقفول ❌'}</button></td>
+                        <td><button class="toggle-btn ${avNabq ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'SharmNabq', ${!avNabq}, this)">${avNabq ? 'متاح ✅':'مقفول ❌'}</button></td>
+                    </tr>`;
+                });
+                html += "</table>";
+                document.getElementById("menu-container").innerHTML = html;
+            } catch(e) {
+                document.getElementById("menu-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في تحميل المنيو!</h3>";
+            }
+        }
+
+        async function toggleMenu(row, branch, newVal, btnElement) {
+            btnElement.innerText = "جاري...";
+            btnElement.style.opacity = "0.5";
+            try {
+                await fetch(API_URL + "?action=updateAvailability&row=" + row + "&branch=" + branch + "&val=" + newVal);
+                btnElement.className = `toggle-btn ${newVal ? 'toggle-on' : 'toggle-off'}`;
+                btnElement.innerText = newVal ? 'متاح ✅' : 'مقفول ❌';
+                btnElement.style.opacity = "1";
+                btnElement.setAttribute("onclick", `toggleMenu(${row}, '${branch}', ${!newVal}, this)`);
+            } catch(e) {
+                alert("فشل في التحديث، تأكد من الإنترنت");
+                btnElement.innerText = "حاول مجدداً";
+            }
+        }
+
+        // ================= الإحصائيات والإكسيل والهيت ماب =================
+        function calculateStats() {
+            let totalRevenue = 0, doneCount = 0, cancelCount = 0;
+
+            allOrders.forEach(o => {
+                if (o.Status.includes("ملغي")) {
+                    cancelCount++;
+                } else {
+                    totalRevenue += (parseInt(o.Total) || 0);
+                    if (o.Status.includes("توصيل")) doneCount++;
+                }
+            });
+
+            document.getElementById("stat-revenue").innerText = totalRevenue + " LE";
+            document.getElementById("stat-count").innerText = allOrders.length;
+            document.getElementById("stat-done").innerText = doneCount;
+            document.getElementById("stat-canceled").innerText = cancelCount;
+        }
+
+        function renderHeatmap() {
+            let hourCounts = {};
+            for(let i=0; i<24; i++) hourCounts[i] = 0;
+            
+            allOrders.forEach(o => {
+                // استخراج الساعة من التاريخ
+                let match = o.Date.match(/(\d+):/); 
+                let isPM = o.Date.includes("م") || o.Date.toLowerCase().includes("pm");
+                if (match) {
+                    let h = parseInt(match[1]);
+                    if (isPM && h !== 12) h += 12;
+                    if (!isPM && h === 12) h = 0;
+                    hourCounts[h]++;
+                }
+            });
+            
+            let maxOrders = Math.max(...Object.values(hourCounts));
+            let html = "";
+            
+            for(let h=0; h<24; h++) {
+                if (hourCounts[h] > 0) {
+                    let height = (hourCounts[h] / maxOrders) * 100;
+                    let ampm = h >= 12 ? "مساءً" : "صباحاً";
+                    let displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                    
+                    html += `
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <div style="width: 80px; font-weight: bold; font-size:14px;">${displayH} ${ampm}</div>
+                        <div style="flex: 1; background: #eee; height: 25px; border-radius: 5px; overflow: hidden; margin: 0 10px;">
+                            <div style="width: ${height}%; background: #f0a500; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        <div style="width: 40px; text-align: right; font-weight: bold;">${hourCounts[h]} طلب</div>
+                    </div>`;
+                }
+            }
+            if(html === "") html = "<p style='text-align:center;'>لسه مفيش طلبات كافية لحساب أوقات الذروة</p>";
+            document.getElementById("heatmap-chart").innerHTML = html;
+        }
+
+        function exportToExcel() {
+            if(allOrders.length === 0) { alert("مفيش أوردرات لتحميلها!"); return; }
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "رقم الطلب,التاريخ,الاسم,الموبايل,الفرع,الإجمالي,الحالة\r\n";
+            
+            allOrders.forEach(o => {
+                let safeName = o.Name.replace(/,/g, " ");
+                let safeDate = o.Date.replace(/,/g, " ");
+                let row = `${o.OrderID},${safeDate},${safeName},${o.Phone},${o.Branch},${o.Total},${o.Status}`;
+                csvContent += row + "\r\n";
+            });
+            
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            let today = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `Mannys_Orders_${today}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // بدء التشغيل
+        window.onload = fetchOrders;
+        // تحديث الطلبات لايف كل 20 ثانية
+        setInterval(fetchOrders, 20000); 
+    </script>
+</body>
+</html>
