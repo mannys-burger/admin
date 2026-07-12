@@ -3,528 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manny's Burger Order System</title>
+    <title>Manny's POS - لوحة التحكم الشاملة</title>
     <style>
-        :root {
-            --primary: #f0a500;
-            --dark: #222;
-            --light: #fff;
-            --bg: #f2f4f7;
-            --border: #dcdcdc;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: 0;
-            padding-bottom: 80px; 
-            color: var(--dark);
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-        h1, h2, h3 { text-align: center; }
+        body { font-family: Tahoma, Arial; background: #f2f4f7; padding: 20px; margin: 0; color: #222; }
+        .header { text-align: center; background: #222; color: #f0a500; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;}
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
+        .tab-btn { flex: 1; padding: 15px; font-size: 16px; font-weight: bold; background: #ddd; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; min-width: 120px;}
+        .tab-btn.active { background: #f0a500; color: #222; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         
-        /* Buttons */
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background-color: var(--primary);
-            color: var(--dark);
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn:active { transform: scale(0.98); }
-        .btn-secondary { background-color: var(--dark); color: var(--light); }
-        .btn-danger { background-color: #dc3545; color: white; }
+        /* Filters */
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;}
+        .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 150px;}
 
-        /* Screens */
-        #menu-screen, #cart-screen { display: none; }
-
-        /* Menu Layout (Sidebar + Content) */
-        .menu-layout {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        /* Orders */
+        .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .order-card.new { border-color: #dc3545; box-shadow: 0 0 10px rgba(220,53,69,0.2); }
+        .order-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .status-badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        .btn { padding: 8px 15px; margin: 2px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white;}
+        .btn-prep { background: #f0a500; color: #222; }
+        .btn-done { background: #28a745; }
+        .btn-cancel { background: #dc3545; }
+        .btn-print { background: #333; color: white; width: 100%; margin-top: 10px; }
+        .details { white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 14px; line-height: 1.6; }
         
-        /* Sidebar Navigation */
-        .sidebar {
-            width: 90px;
-            flex-shrink: 0;
-            background: var(--light);
-            border-radius: 8px;
-            padding: 5px;
-            height: fit-content;
-            position: sticky;
-            top: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .cat-tab {
-            padding: 12px 5px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .cat-tab:last-child { border-bottom: none; }
-        .cat-tab.active {
-            background-color: var(--primary);
-            color: var(--dark);
-            border-radius: 5px;
-        }
+        /* Menu Control */
+        .menu-table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        .menu-table th, .menu-table td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        .menu-table th { background: #222; color: #f0a500; }
+        .toggle-btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 80px;}
+        .toggle-on { background: #28a745; color: white; }
+        .toggle-off { background: #dc3545; color: white; }
 
-        /* Items Grid */
-        .menu-content {
-            flex-grow: 1;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 10px;
-            align-content: start;
-        }
-
-        /* Grid Item Button (Matches Your Image) */
-        .item-btn {
-            background-color: #fdfdfd;
-            border: 2px solid #eab543;
-            border-radius: 6px;
-            padding: 15px 5px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 2px 2px 6px rgba(0,0,0,0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 70px;
-            transition: 0.1s;
-            color: var(--dark);
-        }
-        .item-btn:active { transform: scale(0.95); box-shadow: inset 1px 1px 4px rgba(0,0,0,0.1); }
-
-        /* Modal (Popup) */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: var(--light);
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .modal-content select {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid var(--border);
-            font-size: 16px;
-            font-family: inherit;
-        }
+        /* Analytics */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;}
+        .stat-card { background: white; padding: 20px; text-align: center; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #f0a500; }
+        .stat-val { font-size: 30px; font-weight: bold; margin-top: 10px; color: #222; }
+        .excel-btn { background: #28a745; color: white; width: 100%; padding: 15px; font-size: 18px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; margin-bottom: 20px;}
         
-        /* Cart & Form */
-        .cart-item {
-            background: var(--light);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid var(--border);
-        }
-        .total-price { 
-            font-size: 20px; font-weight: bold; text-align: center; 
-            padding: 15px; background: var(--primary); border-radius: 8px; margin: 15px 0;
-        }
-        .form-group { margin-bottom: 12px; }
-        .form-group input, .form-group textarea {
-            width: 100%; padding: 10px; border: 1px solid var(--border);
-            border-radius: 5px; box-sizing: border-box; font-family: inherit;
-        }
+        /* Heatmap */
+        .heatmap-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        #sound-btn { background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; animation: pulse 2s infinite; }
+        #sound-btn.active { background: #28a745; animation: none; }
         
-        #view-cart-btn {
-            position: fixed; bottom: 0; left: 0; width: 100%; margin: 0; border-radius: 0; z-index: 100;
-        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- Screen 1: Branch Selection -->
-    <div id="branch-screen">
-        <h1>Manny's Burger 🍔</h1>
-        <h2>بتطلب منين؟</h2>
-        <button class="btn" onclick="selectBranch('Faisal')">فرع فيصل</button>
-        <button class="btn" onclick="selectBranch('Sharm')">فرع شرم الشيخ</button>
-    </div>
-
-    <!-- Screen 2: Menu Grid & Sidebar -->
-    <div id="menu-screen">
-        <h3 style="margin-top: 0;">فرع <span id="branch-name-display"></span></h3>
-        
-        <div class="menu-layout">
-            <!-- Sidebar Categories -->
-            <div class="sidebar" id="sidebar-categories">
-                <!-- Tabs generated via JS -->
-            </div>
-            
-            <!-- Items Grid -->
-            <div class="menu-content" id="menu-grid">
-                <!-- Items generated via JS -->
-            </div>
+    <div class="header">
+        <h1>🍔 Manny's POS System</h1>
+        <div>
+            <button id="sound-btn" onclick="enableSound()">🔕 تفعيل جرس الطلبات</button>
+            <button class="btn btn-prep" onclick="fetchOrders()" style="font-size: 16px;">🔄 تحديث (Refresh)</button>
         </div>
-
-        <button id="view-cart-btn" class="btn btn-secondary" onclick="showCart()">🛒 السلة (<span id="cart-count">0</span>) - إتمام الطلب</button>
     </div>
 
-    <!-- Screen 3: Cart & Checkout -->
-    <div id="cart-screen">
-        <h2>سلة المشتريات</h2>
-        <div id="cart-items-container"></div>
-        <div class="total-price">الإجمالي: <span id="total-price-display">0</span> LE</div>
-        
-        <h3>ملاحظات الطلب</h3>
-        <div class="form-group">
-            <textarea id="global-note" rows="3" placeholder="اكتب هنا أي ملاحظات إضافية (مثال: الكلاسيك بدون بصل، البطاطس عليها صوص جبنة)"></textarea>
-        </div>
-
-        <h3>بيانات التوصيل</h3>
-        <div class="form-group"><input type="text" id="cust-name" placeholder="الاسم" required></div>
-        <div class="form-group"><input type="tel" id="cust-phone" placeholder="رقم الموبايل" required></div>
-        <div class="form-group"><input type="text" id="cust-street" placeholder="الشارع" required></div>
-        <div class="form-group"><input type="text" id="cust-building" placeholder="رقم العمارة"></div>
-        <div class="form-group"><input type="text" id="cust-floor" placeholder="الدور"></div>
-        <div class="form-group"><input type="text" id="cust-apt" placeholder="رقم الشقة"></div>
-        <div class="form-group"><input type="text" id="cust-landmark" placeholder="علامة مميزة (اختياري)"></div>
-        
-        <button class="btn" onclick="sendWhatsApp()">📲 إرسال الطلب عبر واتساب</button>
-        <button class="btn btn-danger" onclick="backToMenu()">⬅️ رجوع للمنيو</button>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-orders', this)">📦 الطلبات المباشرة</button>
+        <button class="tab-btn" onclick="switchTab('tab-menu', this)">🧾 إدارة المنيو</button>
+        <button class="tab-btn" onclick="switchTab('tab-stats', this)">📈 الإحصائيات والتقارير</button>
     </div>
-</div>
 
-<!-- Modal / Popup for choosing size -->
-<div class="modal-overlay" id="item-modal">
-    <div class="modal-content">
-        <h3 id="modal-item-name">اسم الصنف</h3>
-        
-        <label style="font-weight: bold; font-size:14px; text-align:right; display:block;">اختار الحجم/السعر:</label>
-        <select id="modal-size-select"></select>
-        
-        <div id="modal-cook-group" style="display: none;">
-            <label style="font-weight: bold; font-size:14px; text-align:right; display:block; margin-top:10px;">طريقة الطهي:</label>
-            <select id="modal-cook-select">
-                <option value="مقلي">مقلي</option>
-                <option value="مشوي">مشوي</option>
+    <!-- شاشة الطلبات -->
+    <div id="tab-orders" class="tab-content active">
+        <div class="filters">
+            <select id="filter-branch" onchange="renderOrders()">
+                <option value="all">📍 كل الفروع</option>
+                <option value="فيصل">فرع فيصل</option>
+                <option value="خليج نعمة">فرع شرم (نعمة)</option>
+                <option value="خليج نبق">فرع شرم (نبق)</option>
+            </select>
+            <select id="filter-status" onchange="renderOrders()">
+                <option value="all">🚦 كل الحالات</option>
+                <option value="جديد">🔴 جديد فقط</option>
+                <option value="التجهيز">⏳ جاري التجهيز</option>
+                <option value="للتوصيل">🛵 خرج للتوصيل</option>
             </select>
         </div>
-
-        <button class="btn" onclick="addToCart()">➕ أضف للسلة</button>
-        <button class="btn btn-danger" style="margin-top:5px;" onclick="closeModal()">إلغاء</button>
+        <div id="orders-container"><h3 style="text-align: center;">جاري تحميل الأوردرات...</h3></div>
     </div>
-</div>
 
-<script>
-    // ==========================================
-    // قاعدة البيانات الشاملة
-    // ==========================================
-    const menuData = [
-        { category: "Beef", name: "Classic Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 120, "250g": 170, "300g": 190, "400g": 240 }, Sharm: { "150g": 140, "250g": 200, "300g": 220, "400g": 270 } } },
-        { category: "Beef", name: "Caramelized Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 140, "250g": 190, "300g": 210, "400g": 260 }, Sharm: { "150g": 160, "250g": 220, "300g": 240, "400g": 290 } } },
-        { category: "Beef", name: "White Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 155, "250g": 205, "300g": 225, "400g": 275 }, Sharm: { "150g": 170, "250g": 230, "300g": 250, "400g": 300 } } },
-        { category: "Beef", name: "New York Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 160, "250g": 210, "300g": 230, "400g": 280 }, Sharm: { "150g": 180, "250g": 240, "300g": 260, "400g": 310 } } },
-        { category: "Beef", name: "Fire Bite Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 165, "250g": 215, "300g": 235, "400g": 285 }, Sharm: { "150g": 185, "250g": 245, "300g": 265, "400g": 315 } } },
-        { category: "Beef", name: "Boskino Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 170, "250g": 220, "300g": 240, "400g": 290 }, Sharm: { "150g": 190, "250g": 250, "300g": 270, "400g": 320 } } },
-        { category: "Beef", name: "Texas Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 160, "250g": 210, "300g": 230, "400g": 280 }, Sharm: { "150g": 180, "250g": 240, "300g": 260, "400g": 310 } } },
-        { category: "Beef", name: "Mushroom Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 150, "250g": 200, "300g": 220, "400g": 270 }, Sharm: { "150g": 170, "250g": 230, "300g": 250, "400g": 300 } } },
-        { category: "Beef", name: "Smoked Burger", sizes: ["150g", "250g", "300g", "400g"], prices: { Faisal: { "150g": 160, "250g": 210, "300g": 230, "400g": 280 }, Sharm: { "150g": 180, "250g": 240, "300g": 260, "400g": 310 } } },
-        { category: "Beef", name: "Smash Burger", sizes: ["Double", "Triple"], prices: { Faisal: { "Double": 200, "Triple": 250 }, Sharm: { "Double": 240, "Triple": 290 } } },
+    <!-- شاشة المنيو -->
+    <div id="tab-menu" class="tab-content">
+        <div id="menu-container"><h3 style="text-align: center;">جاري تحميل المنيو...</h3></div>
+    </div>
 
-        { category: "Chicken", name: "Classic Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 110, "Double": 160, "Triple": 210 }, Sharm: { "Single": 120, "Double": 170, "Triple": 220 } } },
-        { category: "Chicken", name: "Supreme Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 125, "Double": 175, "Triple": 225 }, Sharm: { "Single": 140, "Double": 190, "Triple": 240 } } },
-        { category: "Chicken", name: "Ranch Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 150, "Double": 200, "Triple": 250 }, Sharm: { "Single": 160, "Double": 210, "Triple": 260 } } },
-        { category: "Chicken", name: "RBJ Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 140, "Double": 190, "Triple": 240 }, Sharm: { "Single": 140, "Double": 190, "Triple": 240 } } },
-        { category: "Chicken", name: "Chili Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 130, "Double": 180, "Triple": 230 }, Sharm: { "Single": 140, "Double": 190, "Triple": 240 } } },
-        { category: "Chicken", name: "NASA Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 130, "Double": 180, "Triple": 230 }, Sharm: { "Single": 140, "Double": 190, "Triple": 240 } } },
-        { category: "Chicken", name: "Magnum Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 150, "Double": 200, "Triple": 250 }, Sharm: { "Single": 160, "Double": 210, "Triple": 260 } } },
-        { category: "Chicken", name: "Chicken Yellow", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 130, "Double": 180, "Triple": 230 }, Sharm: { "Single": 140, "Double": 190, "Triple": 240 } } },
-        { category: "Chicken", name: "Mano Chicken", sizes: ["Single", "Double", "Triple"], prices: { Faisal: { "Single": 100, "Double": 150, "Triple": 200 }, Sharm: { "Single": 120, "Double": 180, "Triple": 240 } } },
-
-        { category: "Sandwich", name: "Smoked Hotdog", sizes: ["One Size"], prices: { Faisal: { "One Size": 110 }, Sharm: { "One Size": 120 } } },
-        { category: "Sandwich", name: "Classic Hotdog", sizes: ["One Size"], prices: { Faisal: { "One Size": 90 }, Sharm: { "One Size": 100 } } },
-        { category: "Sandwich", name: "Chicken Wrap", sizes: ["One Size"], needsCookingType: true, prices: { Faisal: { "One Size": 90 }, Sharm: { "One Size": 100 } } },
-        { category: "Sandwich", name: "Loaded Fries Wrap", sizes: ["One Size"], prices: { Faisal: { "One Size": 80 }, Sharm: { "One Size": 90 } } },
-
-        { category: "Fries", name: "Fries", sizes: ["One Size"], prices: { Faisal: { "One Size": 50 }, Sharm: { "One Size": 60 } } },
-        { category: "Fries", name: "Crispy Fries", sizes: ["One Size"], prices: { Faisal: { "One Size": 60 }, Sharm: { "One Size": 70 } } },
-        { category: "Fries", name: "Chili Cheese Fries", sizes: ["Small", "Large"], prices: { Faisal: { "Small": 90, "Large": 160 }, Sharm: { "Small": 100, "Large": 180 } } },
-        { category: "Fries", name: "Beef Bacon Fries", sizes: ["Small", "Large"], prices: { Faisal: { "Small": 90, "Large": 160 }, Sharm: { "Small": 100, "Large": 180 } } },
-        { category: "Fries", name: "Smoky Doggy", sizes: ["Small", "Large"], prices: { Faisal: { "Small": 70, "Large": 120 }, Sharm: { "Small": 100, "Large": 180 } } },
-        { category: "Fries", name: "Cheese Fries", sizes: ["Small", "Large"], prices: { Faisal: { "Small": 90, "Large": 160 }, Sharm: { "Small": 100, "Large": 180 } } },
-        { category: "Fries", name: "Chicky Fries", sizes: ["Small", "Large"], needsCookingType: true, prices: { Faisal: { "Small": 90, "Large": 160 }, Sharm: { "Small": 100, "Large": 180 } } },
-
-        { category: "Sides", name: "Mozzarella sticks", sizes: ["One Size"], prices: { Faisal: { "One Size": 60 }, Sharm: { "One Size": 75 } } },
-        { category: "Sides", name: "Cheddar jalapeno", sizes: ["One Size"], prices: { Faisal: { "One Size": 60 }, Sharm: { "One Size": 75 } } },
-        { category: "Sides", name: "Onion rings", sizes: ["One Size"], prices: { Faisal: { "One Size": 50 }, Sharm: { "One Size": 60 } } },
-        { category: "Sides", name: "Coleslaw", sizes: ["One Size"], prices: { Faisal: { "One Size": 40 }, Sharm: { "One Size": 50 } } },
+    <!-- شاشة الإحصائيات -->
+    <div id="tab-stats" class="tab-content">
+        <button class="excel-btn" onclick="exportToExcel()">💾 تحميل تقفيل اليوم (Excel / CSV)</button>
         
-        { category: "Sauces", name: "Cheddar cheese sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 25 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Fire sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Ranch sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "BBQ sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Thai chili sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "New York sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Texas sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Buffalo sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Honey mustard sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Sauces", name: "Dynamite sauce", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
+        <div class="stats-grid">
+            <div class="stat-card"><h3>إجمالي المبيعات 💰</h3><div id="stat-revenue" class="stat-val">0 LE</div></div>
+            <div class="stat-card"><h3>إجمالي الطلبات 📦</h3><div id="stat-count" class="stat-val">0</div></div>
+            <div class="stat-card"><h3>الطلبات المكتملة ✅</h3><div id="stat-done" class="stat-val">0</div></div>
+            <div class="stat-card"><h3>الطلبات الملغية ❌</h3><div id="stat-canceled" class="stat-val">0</div></div>
+        </div>
 
-        { category: "Extra", name: "Extra bun", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 25 } } },
-        { category: "Extra", name: "Extra patty 150gm", sizes: ["One Size"], prices: { Faisal: { "One Size": 80 }, Sharm: { "One Size": 100 } } },
-        { category: "Extra", name: "Extra patty 250gm", sizes: ["One Size"], prices: { Faisal: { "One Size": 120 }, Sharm: { "One Size": 145 } } },
-        { category: "Extra", name: "Extra Chicken piece", sizes: ["One Size"], prices: { Faisal: { "One Size": 40 }, Sharm: { "One Size": 40 } } },
-        { category: "Extra", name: "Smoked turkey", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 25 } } },
-        { category: "Extra", name: "Smoked beef", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 30 } } },
-        { category: "Extra", name: "Beef Bacon", sizes: ["One Size"], prices: { Faisal: { "One Size": 30 }, Sharm: { "One Size": 50 } } },
-        { category: "Extra", name: "Carmalised", sizes: ["One Size"], prices: { Faisal: { "One Size": 30 }, Sharm: { "One Size": 40 } } },
-        { category: "Extra", name: "Mushroom", sizes: ["One Size"], prices: { Faisal: { "One Size": 40 }, Sharm: { "One Size": 50 } } },
-        { category: "Extra", name: "Add sauce on sandwich", sizes: ["One Size"], prices: { Faisal: { "One Size": 10 }, Sharm: { "One Size": 15 } } },
-        { category: "Extra", name: "Cheese extra", sizes: ["One Size"], prices: { Faisal: { "One Size": 20 }, Sharm: { "One Size": 35 } } },
-        { category: "Extra", name: "Cheese slice", sizes: ["One Size"], prices: { Faisal: { "One Size": 15 }, Sharm: { "One Size": 20 } } },
-        { category: "Extra", name: "Spicy (jalapeno + fire)", sizes: ["One Size"], prices: { Faisal: { "One Size": 15 }, Sharm: { "One Size": 20 } } },
+        <div class="heatmap-container">
+            <h2 style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">⏰ أوقات الذروة (Heatmap)</h2>
+            <p style="text-align: center; color: #555; font-size: 14px;">اعرف أكتر ساعات بيجيلك فيها أوردرات عشان تركز إعلاناتك فيها</p>
+            <div id="heatmap-chart" style="margin-top: 20px;"></div>
+        </div>
+    </div>
 
-        { category: "Drinks", name: "Soft Drink", sizes: ["One Size"], prices: { Faisal: { "One Size": 30 }, Sharm: { "One Size": 40 } } }
-    ];
+    <!-- ملف الصوت المخفي للجرس -->
+    <audio id="order-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
-    let currentBranch = "";
-    let cart = [];
-    let activeCategory = "Beef";
-    let selectedItemIndex = null;
-    
-    // رقم الواتساب المحدث
-    const WHATSAPP_NUMBER = "201070500094"; 
-
-    // ==========================================
-    // منطق التنقل
-    // ==========================================
-    function selectBranch(branch) {
-        currentBranch = branch;
-        document.getElementById("branch-screen").style.display = "none";
-        document.getElementById("menu-screen").style.display = "block";
-        document.getElementById("branch-name-display").innerText = branch === 'Faisal' ? 'فيصل' : 'شرم الشيخ';
+    <script>
+        // ⚠️⚠️ حط اللينك الجديد بتاع جوجل سكريبت هنا ⚠️⚠️
+        const API_URL = "https://script.google.com/macros/s/AKfycbwbPwWjEMhlzr_lY2grRw7_WtTWoTLbBrVlJnjIOTyXV3GPolV0LtTXX7jWH42k_IqVag/exec";
         
-        renderSidebar();
-        renderMenuGrid();
-    }
+        let allOrders = [];
+        let lastOrderCount = 0;
+        let soundEnabled = false;
 
-    // ==========================================
-    // القائمة الجانبية (الأقسام)
-    // ==========================================
-    function renderSidebar() {
-        const sidebar = document.getElementById("sidebar-categories");
-        sidebar.innerHTML = "";
-        
-        const categories = [...new Set(menuData.map(item => item.category))];
-        
-        categories.forEach(cat => {
-            let isActive = cat === activeCategory ? "active" : "";
-            sidebar.innerHTML += `<div class="cat-tab ${isActive}" onclick="filterCategory('${cat}')">${cat}</div>`;
-        });
-    }
+        // ================= التبويبات =================
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
 
-    function filterCategory(cat) {
-        activeCategory = cat;
-        renderSidebar();
-        renderMenuGrid();
-    }
+            if(tabId === 'tab-menu' && document.getElementById('menu-container').innerHTML.includes('جاري')) fetchAdminMenu();
+        }
 
-    // ==========================================
-    // عرض الأصناف كـ أزرار (Grid)
-    // ==========================================
-    function renderMenuGrid() {
-        const grid = document.getElementById("menu-grid");
-        grid.innerHTML = "";
+        // ================= جرس الطلبات =================
+        function enableSound() {
+            soundEnabled = true;
+            let btn = document.getElementById("sound-btn");
+            btn.classList.add("active");
+            btn.innerText = "🔔 الجرس مفعل";
+            document.getElementById("order-sound").play().catch(()=>{}); 
+        }
 
-        menuData.forEach((item, index) => {
-            if (item.category === activeCategory) {
-                grid.innerHTML += `<div class="item-btn" onclick="openModal(${index})">${item.name}</div>`;
+        function playRing() {
+            if(soundEnabled) {
+                let audio = document.getElementById("order-sound");
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("الصوت مقفول"));
             }
-        });
-    }
-
-    // ==========================================
-    // المودال (النافذة المنبثقة للاختيار)
-    // ==========================================
-    function openModal(index) {
-        selectedItemIndex = index;
-        const item = menuData[index];
-        
-        document.getElementById("modal-item-name").innerText = item.name;
-        
-        const sizeSelect = document.getElementById("modal-size-select");
-        sizeSelect.innerHTML = "";
-        
-        item.sizes.forEach(size => {
-            let price = item.prices[currentBranch][size];
-            let sizeLabel = size === "One Size" ? "إضافة" : size;
-            sizeSelect.innerHTML += `<option value="${size}|${price}">${sizeLabel} - ${price} LE</option>`;
-        });
-
-        if (item.needsCookingType) {
-            document.getElementById("modal-cook-group").style.display = "block";
-        } else {
-            document.getElementById("modal-cook-group").style.display = "none";
         }
 
-        document.getElementById("item-modal").style.display = "flex";
-    }
-
-    function closeModal() {
-        document.getElementById("item-modal").style.display = "none";
-        selectedItemIndex = null;
-    }
-
-    // ==========================================
-    // وظائف السلة
-    // ==========================================
-    function addToCart() {
-        if(selectedItemIndex === null) return;
-        
-        const item = menuData[selectedItemIndex];
-        const sizeSelect = document.getElementById("modal-size-select").value;
-        const [size, price] = sizeSelect.split('|');
-        
-        let cookType = "";
-        if (item.needsCookingType) {
-            cookType = document.getElementById("modal-cook-select").value;
+        // ================= الأوردرات والفلترة =================
+        async function fetchOrders() {
+            try {
+                let response = await fetch(API_URL + "?action=getOrders");
+                let orders = await response.json();
+                
+                let newOrdersList = orders.filter(o => o.Status && o.Status.includes("جديد"));
+                if (orders.length > lastOrderCount && newOrdersList.length > 0) {
+                    playRing();
+                }
+                lastOrderCount = orders.length;
+                allOrders = orders;
+                
+                renderOrders();
+                calculateStats();
+                renderHeatmap();
+            } catch(e) {
+                document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>";
+            }
         }
 
-        cart.push({
-            name: item.name,
-            size: size === "One Size" ? "" : size,
-            price: parseInt(price),
-            cookType: cookType
-        });
+        function renderOrders() {
+            let branchFilter = document.getElementById('filter-branch').value;
+            let statusFilter = document.getElementById('filter-status').value;
+            let container = document.getElementById("orders-container");
 
-        updateCartCount();
-        closeModal();
-    }
+            let filteredOrders = allOrders.filter(order => {
+                let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
+                let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
+                return matchBranch && matchStatus;
+            });
 
-    function updateCartCount() {
-        document.getElementById("cart-count").innerText = cart.length;
-    }
+            if (filteredOrders.length === 0) {
+                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للبحث 🍔</h3>";
+                return;
+            }
 
-    function showCart() {
-        if(cart.length === 0) {
-            alert("السلة فاضية! اختار ساندوتشاتك الأول.");
-            return;
-        }
-        document.getElementById("menu-screen").style.display = "none";
-        document.getElementById("cart-screen").style.display = "block";
-        renderCart();
-    }
+            let html = "";
+            filteredOrders.forEach(order => {
+                let isNew = order.Status.includes("جديد");
+                let statusColor = "#ccc";
+                if(isNew) statusColor = "#dc3545"; 
+                else if(order.Status.includes("تجهيز")) statusColor = "#f0a500"; 
+                else if(order.Status.includes("توصيل")) statusColor = "#28a745"; 
 
-    function backToMenu() {
-        document.getElementById("cart-screen").style.display = "none";
-        document.getElementById("menu-screen").style.display = "block";
-    }
-
-    function renderCart() {
-        const container = document.getElementById("cart-items-container");
-        container.innerHTML = "";
-        let total = 0;
-
-        cart.forEach((item, i) => {
-            total += item.price;
-            let cookStr = item.cookType ? `(${item.cookType})` : "";
-            let sizeStr = item.size ? `[${item.size}]` : "";
-            
-            container.innerHTML += `
-                <div class="cart-item">
-                    <strong style="font-size:16px;">${item.name} ${cookStr} ${sizeStr}</strong> <br>
-                    <span style="font-size:16px; color:#d35400; font-weight:bold;">${item.price} LE</span>
-                    <button onclick="removeFromCart(${i})" style="float:left; color:red; border:1px solid red; background:#fff; padding:5px 10px; border-radius:5px; cursor:pointer;">❌ حذف</button>
-                    <div style="clear:both;"></div>
+                // تم إضافة رقم الطلب (OrderID)
+                html += `
+                <div class="order-card ${isNew ? 'new' : ''}">
+                    <div class="order-header">
+                        <div>
+                            <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold; font-size:12px;">${order.OrderID || 'بدون كود'}</span>
+                            <br><strong># العميل:</strong> ${order.Name} - ${order.Phone} 
+                            <br><small>🕒 ${order.Date}</small>
+                        </div>
+                        <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
+                    </div>
+                    <div><strong>📍 الفرع:</strong> ${order.Branch}</div>
+                    <div><strong>🏠 العنوان:</strong> ${order.Address}</div>
+                    
+                    <div class="details">${order.Details}</div>
+                    ${order.Notes ? `<div style="color:red; font-weight:bold;">📝 ملاحظة: ${order.Notes}</div>` : ''}
+                    
+                    <div style="font-size: 18px; font-weight: bold; color: #d35400; margin-top: 10px;">💰 الإجمالي: ${order.Total} LE</div>
+                    
+                    <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                    <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
+                        <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
+                        <button class="btn btn-done" onclick="changeStatus(${order.row}, 'خرج للتوصيل 🛵')">🛵 تم التوصيل</button>
+                        <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
+                    </div>
+                    <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون المطبخ</button>
                 </div>`;
-        });
-        
-        document.getElementById("total-price-display").innerText = total;
-    }
-
-    function removeFromCart(index) {
-        cart.splice(index, 1);
-        updateCartCount();
-        if(cart.length === 0) {
-            backToMenu();
-        } else {
-            renderCart();
-        }
-    }
-
-    // ==========================================
-    // إرسال الطلب لواتساب المطعم
-    // ==========================================
-    function sendWhatsApp() {
-        const name = document.getElementById("cust-name").value;
-        const phone = document.getElementById("cust-phone").value;
-        const street = document.getElementById("cust-street").value;
-        
-        if(!name || !phone || !street) {
-            alert("⚠️ برجاء ملء البيانات الأساسية (الاسم، الموبايل، الشارع)!");
-            return;
+            });
+            container.innerHTML = html;
         }
 
-        const building = document.getElementById("cust-building").value;
-        const floor = document.getElementById("cust-floor").value;
-        const apt = document.getElementById("cust-apt").value;
-        const landmark = document.getElementById("cust-landmark").value;
-        const globalNote = document.getElementById("global-note").value;
-
-        let total = 0;
-        let message = `*طلب جديد من فرع: ${currentBranch === 'Faisal' ? 'فيصل' : 'شرم الشيخ'}* 🍔\n`;
-        message += `-------------------\n`;
-        message += `*الاسم:* ${name}\n`;
-        message += `*التليفون:* ${phone}\n`;
-        message += `*العنوان:* ${street}، عمارة ${building || '-'}، دور ${floor || '-'}، شقة ${apt || '-'}\n`;
-        if(landmark) message += `*علامة مميزة:* ${landmark}\n`;
-        message += `-------------------\n`;
-        message += `*الطلب:*\n\n`;
-
-        cart.forEach(item => {
-            total += item.price;
-            let cookStr = item.cookType ? `(${item.cookType})` : "";
-            let sizeStr = item.size ? `[${item.size}]` : "";
-            message += `▪️ 1x ${item.name} ${cookStr} ${sizeStr} - ${item.price}LE\n`;
-        });
-
-        message += `-------------------\n`;
-        if(globalNote) {
-            message += `📝 *ملاحظات العميل:*\n${globalNote}\n`;
-            message += `-------------------\n`;
+        async function changeStatus(row, newStatus) {
+            try {
+                await fetch(API_URL + "?action=updateOrder&row=" + row + "&status=" + encodeURIComponent(newStatus));
+                fetchOrders(); 
+            } catch(e) { alert("حصلت مشكلة في تحديث الحالة"); }
         }
-        message += `💰 *الإجمالي: ${total} LE*\n`;
 
-        const encodedMsg = encodeURIComponent(message);
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMsg}`, '_blank');
-    }
-</script>
+        // ================= طباعة البون =================
+        function printReceipt(rowId) {
+            let order = allOrders.find(o => o.row === rowId);
+            if(!order) return;
 
+            let printWin = window.open('', '', 'width=400,height=600');
+            printWin.document.write(`
+                <html dir="rtl">
+                <head><title>Print</title>
+                <style>
+                    body { font-family: Tahoma, sans-serif; margin: 0; padding: 10px; font-size: 14px; width: 80mm; color: #000; }
+                    h2 { text-align: center; margin: 5px 0; font-size: 22px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+                    .line { border-bottom: 1px dashed #000; margin: 10px 0; }
+                    .bold { font-weight: bold; }
+                </style>
+                </head>
+                <body>
+                    <h2>Manny's Burger</h2>
+                    <div style="text-align:center; font-weight:bold; font-size:16px;">فرع ${order.Branch}</div>
+                    <div style="text-align:center; margin-top:5px; font-size:14px; font-weight:bold; border:1px solid #000; padding:3px;">${order.OrderID || ''}</div>
+                    <div class="line"></div>
+                    <div><span class="bold">الوقت:</span> ${order.Date}</div>
+                    <div><span class="bold">العميل:</span> ${order.Name}</div>
+                    <div><span class="bold">الموبايل:</span> ${order.Phone}</div>
+                    <div><span class="bold">العنوان:</span> ${order.Address}</div>
+                    <div class="line"></div>
+                    <pre style="font-family: Tahoma; white-space: pre-wrap; margin:0; font-size:15px; font-weight:bold;">${order.Details}</pre>
+                    ${order.Notes ? `<div class="line"></div><div class="bold">ملاحظات:</div><div>${order.Notes}</div>` : ''}
+                    <div class="line"></div>
+                    <h3 style="text-align:center; font-size:20px; margin:5px 0;">الإجمالي: ${order.Total} LE</h3>
+                    <div class="line"></div>
+                    <div style="text-align:center; font-size:12px;">شكرًا لاختياركم مانيز برجر</div>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => { printWin.print(); printWin.close(); }, 800);
+        }
+
+        // ================= إدارة المنيو =================
+        async function fetchAdminMenu() {
+            try {
+                let response = await fetch(API_URL + "?action=getMenuAdmin");
+                let menu = await response.json();
+                
+                let html = `<table class="menu-table">
+                    <tr><th>الصنف</th><th>فيصل</th><th>شرم (نعمة)</th><th>شرم (نبق)</th></tr>`;
+                
+                function isAvail(val) {
+                    if (val === undefined || val === null) return true;
+                    let str = String(val).trim().toLowerCase();
+                    return !(str === "false" || str === "0" || str === "لا" || str === "");
+                }
+
+                menu.forEach(item => {
+                    let avFaisal = isAvail(item.Available_Faisal !== undefined ? item.Available_Faisal : item.Available);
+                    let avNaama = isAvail(item.Available_SharmNaama !== undefined ? item.Available_SharmNaama : item.Available);
+                    let avNabq = isAvail(item.Available_SharmNabq !== undefined ? item.Available_SharmNabq : item.Available);
+
+                    html += `<tr>
+                        <td><strong>${item.Name || 'بدون اسم'}</strong><br><small>${item.Category || ''}</small></td>
+                        <td><button class="toggle-btn ${avFaisal ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'Faisal', ${!avFaisal}, this)">${avFaisal ? 'متاح ✅':'مقفول ❌'}</button></td>
+                        <td><button class="toggle-btn ${avNaama ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'SharmNaama', ${!avNaama}, this)">${avNaama ? 'متاح ✅':'مقفول ❌'}</button></td>
+                        <td><button class="toggle-btn ${avNabq ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'SharmNabq', ${!avNabq}, this)">${avNabq ? 'متاح ✅':'مقفول ❌'}</button></td>
+                    </tr>`;
+                });
+                html += "</table>";
+                document.getElementById("menu-container").innerHTML = html;
+            } catch(e) {
+                document.getElementById("menu-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في تحميل المنيو!</h3>";
+            }
+        }
+
+        async function toggleMenu(row, branch, newVal, btnElement) {
+            btnElement.innerText = "جاري...";
+            btnElement.style.opacity = "0.5";
+            try {
+                await fetch(API_URL + "?action=updateAvailability&row=" + row + "&branch=" + branch + "&val=" + newVal);
+                btnElement.className = `toggle-btn ${newVal ? 'toggle-on' : 'toggle-off'}`;
+                btnElement.innerText = newVal ? 'متاح ✅' : 'مقفول ❌';
+                btnElement.style.opacity = "1";
+                btnElement.setAttribute("onclick", `toggleMenu(${row}, '${branch}', ${!newVal}, this)`);
+            } catch(e) {
+                alert("فشل في التحديث، تأكد من الإنترنت");
+                btnElement.innerText = "حاول مجدداً";
+            }
+        }
+
+        // ================= الإحصائيات والإكسيل والهيت ماب =================
+        function calculateStats() {
+            let totalRevenue = 0, doneCount = 0, cancelCount = 0;
+
+            allOrders.forEach(o => {
+                if (o.Status.includes("ملغي")) {
+                    cancelCount++;
+                } else {
+                    totalRevenue += (parseInt(o.Total) || 0);
+                    if (o.Status.includes("توصيل")) doneCount++;
+                }
+            });
+
+            document.getElementById("stat-revenue").innerText = totalRevenue + " LE";
+            document.getElementById("stat-count").innerText = allOrders.length;
+            document.getElementById("stat-done").innerText = doneCount;
+            document.getElementById("stat-canceled").innerText = cancelCount;
+        }
+
+        function renderHeatmap() {
+            let hourCounts = {};
+            for(let i=0; i<24; i++) hourCounts[i] = 0;
+            
+            allOrders.forEach(o => {
+                // استخراج الساعة من التاريخ
+                let match = o.Date.match(/(\d+):/); 
+                let isPM = o.Date.includes("م") || o.Date.toLowerCase().includes("pm");
+                if (match) {
+                    let h = parseInt(match[1]);
+                    if (isPM && h !== 12) h += 12;
+                    if (!isPM && h === 12) h = 0;
+                    hourCounts[h]++;
+                }
+            });
+            
+            let maxOrders = Math.max(...Object.values(hourCounts));
+            let html = "";
+            
+            for(let h=0; h<24; h++) {
+                if (hourCounts[h] > 0) {
+                    let height = (hourCounts[h] / maxOrders) * 100;
+                    let ampm = h >= 12 ? "مساءً" : "صباحاً";
+                    let displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                    
+                    html += `
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <div style="width: 80px; font-weight: bold; font-size:14px;">${displayH} ${ampm}</div>
+                        <div style="flex: 1; background: #eee; height: 25px; border-radius: 5px; overflow: hidden; margin: 0 10px;">
+                            <div style="width: ${height}%; background: #f0a500; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        <div style="width: 40px; text-align: right; font-weight: bold;">${hourCounts[h]} طلب</div>
+                    </div>`;
+                }
+            }
+            if(html === "") html = "<p style='text-align:center;'>لسه مفيش طلبات كافية لحساب أوقات الذروة</p>";
+            document.getElementById("heatmap-chart").innerHTML = html;
+        }
+
+        function exportToExcel() {
+            if(allOrders.length === 0) { alert("مفيش أوردرات لتحميلها!"); return; }
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            csvContent += "رقم الطلب,التاريخ,الاسم,الموبايل,الفرع,الإجمالي,الحالة\r\n";
+            
+            allOrders.forEach(o => {
+                let safeName = o.Name.replace(/,/g, " ");
+                let safeDate = o.Date.replace(/,/g, " ");
+                let row = `${o.OrderID},${safeDate},${safeName},${o.Phone},${o.Branch},${o.Total},${o.Status}`;
+                csvContent += row + "\r\n";
+            });
+            
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            let today = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `Mannys_Orders_${today}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // بدء التشغيل
+        window.onload = fetchOrders;
+        // تحديث الطلبات لايف كل 20 ثانية
+        setInterval(fetchOrders, 20000); 
+    </script>
 </body>
 </html>
