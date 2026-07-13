@@ -134,7 +134,7 @@
 
     <script>
         // ⚠️⚠️ اللينك الجديد بتاع جوجل سكريبت ⚠️⚠️
-        const API_URL = "https://script.google.com/macros/s/AKfycbzH-nVxNBJ_kZ6124E0kS2Mw2La8DG0TAcFZNuprnlT2nvjmn9GPMatSIE7rwHGmzxSOw/exec";
+        const API_URL = "حط_اللينك_بتاعك_هنا";
         
         let allOrders = [];
         let currentViewOrders = []; 
@@ -146,7 +146,10 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             btn.classList.add('active');
+            
             if(tabId === 'tab-menu' && document.getElementById('menu-container').innerHTML.includes('جاري')) fetchAdminMenu();
+            // الـ CRM بيحسب بياناته بس لما التابة بتاعته تتفتح عشان مايتقلش السيستم
+            if(tabId === 'tab-crm') renderCRM(); 
         }
 
         function enableSound() {
@@ -177,7 +180,11 @@
                 allOrders = orders;
                 
                 renderOrders(); 
-                renderCRM(); // تحديث أرشيف العملاء
+                
+                // تحديث الـ CRM فقط في حالة إن التابة دي هي اللي مفتوحة قدام الكاشير حالياً
+                if(document.getElementById('tab-crm').classList.contains('active')) {
+                    renderCRM(); 
+                }
             } catch(e) { document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>"; }
         }
 
@@ -211,12 +218,13 @@
                 let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
                 let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
                 
-                // فلتر البحث السريع
+                // حل بج البحث: تحويل كل حاجة لنص (String) قبل البحث عشان الأرقام متعملش كراش
                 let matchSearch = true;
                 if (searchQuery !== "") {
-                    matchSearch = (order.Phone && order.Phone.includes(searchQuery)) || 
-                                  (order.Name && order.Name.toLowerCase().includes(searchQuery)) || 
-                                  (order.OrderID && order.OrderID.toLowerCase().includes(searchQuery));
+                    let sPhone = String(order.Phone || "").toLowerCase();
+                    let sName = String(order.Name || "").toLowerCase();
+                    let sId = String(order.OrderID || "").toLowerCase();
+                    matchSearch = sPhone.includes(searchQuery) || sName.includes(searchQuery) || sId.includes(searchQuery);
                 }
 
                 let matchTime = false;
@@ -361,7 +369,6 @@
         let crmData = [];
         function renderCRM() {
             let customers = {};
-            // تجميع أرقام العملاء من كل الأوردرات (حتى القديمة)
             allOrders.forEach(o => {
                 if(!o.Phone || o.Status.includes("ملغي")) return;
                 let phone = o.Phone;
@@ -372,7 +379,6 @@
                 customers[phone].totalSpent += (parseFloat(o.Total) || 0);
             });
             
-            // ترتيب العملاء من الأكثر شراء للأقل
             crmData = Object.values(customers).sort((a,b) => b.totalSpent - a.totalSpent);
             
             let html = `<table class="data-table">
