@@ -79,7 +79,7 @@
         <button class="tab-btn" onclick="switchTab('tab-crm', this)">👥 CRM</button>
     </div>
 
-    <!-- 1. شاشة الطلبات الأساسية (مخصصة للفلاتر فقط) -->
+    <!-- 1. شاشة الطلبات الأساسية -->
     <div id="tab-orders" class="tab-content active">
         <div class="filters">
             <select id="filter-time" onchange="renderOrders()">
@@ -104,7 +104,7 @@
         <div id="orders-container"><h3 style="text-align: center;">جاري تحميل الأوردرات...</h3></div>
     </div>
 
-    <!-- 2. شاشة البحث المتقدمة (مستقلة تماماً) -->
+    <!-- 2. شاشة البحث المتقدمة -->
     <div id="tab-search" class="tab-content">
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <input type="text" id="advanced-search-input" class="search-bar" placeholder="🔍 اكتب رقم الموبايل، اسم العميل، أو رقم الطلب...">
@@ -203,16 +203,31 @@
             return Math.floor(diff / 60000);
         }
 
+        // الدالة دي اتحدثت وبقت مضادة لأي كراش (Bulletproof)
         function parseDateString(dateStr) {
             if (!dateStr) return new Date();
-            let engStr = dateStr.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
-            let datePart = engStr.split(/[\s,]+/)[0]; 
+            let str = String(dateStr);
+            
+            // 1. محاولة القراءة المباشرة (لو التاريخ جي إنجليزي أو ISO)
+            let testDate = new Date(str);
+            if (!isNaN(testDate.getTime())) return testDate;
+
+            // 2. لو التاريخ جي عربي من الشيت
+            let engStr = str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            let datePart = engStr.split(/[\s,T]+/)[0]; 
             let parts = datePart.split(/[\/\-]/);
-            if(parts.length >= 3) return new Date(parts[2], parts[1] - 1, parts[0]);
-            return new Date(engStr);
+            
+            if (parts.length >= 3) {
+                let year = parts[2].length === 4 ? parseInt(parts[2]) : parseInt(parts[0]);
+                let month = parseInt(parts[1]) - 1;
+                let day = parts[2].length === 4 ? parseInt(parts[0]) : parseInt(parts[2]);
+                let parsed = new Date(year, month, day);
+                if (!isNaN(parsed.getTime())) return parsed;
+            }
+            
+            return new Date(); // لو فشل خالص يعتبره النهارده عشان الأوردر ميختفيش
         }
 
-        // دالة مجمعة لإنشاء كارت الأوردر عشان نستخدمها في الطلبات وفي البحث
         function generateOrderCardHTML(order) {
             let isNew = order.Status.includes("جديد");
             let statusColor = isNew ? "#dc3545" : (order.Status.includes("تجهيز") ? "#f0a500" : (order.Status.includes("طريق") ? "#17a2b8" : "#28a745"));
@@ -229,13 +244,22 @@
                 timersHtml += `<div class="timer-badge">🛵 توصيل: ${deliveryMinutes} دقيقة ${!order.DeliveredTime ? '(في الطريق 🛵)' : ''}</div>`;
             }
 
+            // تظبيط شكل التاريخ لو جي بصيغة برمجية
+            let displayDate = order.Date;
+            if (String(displayDate).includes("T") && String(displayDate).endsWith("Z")) {
+                let d = new Date(displayDate);
+                if (!isNaN(d.getTime())) {
+                    displayDate = d.toLocaleString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                }
+            }
+
             return `
             <div class="order-card ${isNew ? 'new' : ''}">
                 <div class="order-header">
                     <div>
                         <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold;">${order.OrderID || 'بدون كود'}</span>
                         <br><strong>العميل:</strong> ${order.Name} - <a href="tel:${order.Phone}" style="color:#007bff; text-decoration:none; font-weight:bold;">${order.Phone} 📞</a>
-                        <br><small>🕒 ${order.Date}</small>
+                        <br><small>🕒 ${displayDate}</small>
                     </div>
                     <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
                 </div>
@@ -260,7 +284,6 @@
             </div>`;
         }
 
-        // دالة عرض الطلبات الأساسية (مفيهاش بحث خلاص)
         function renderOrders() {
             let timeFilter = document.getElementById('filter-time').value;
             let branchFilter = document.getElementById('filter-branch').value;
@@ -277,7 +300,11 @@
                 let matchTime = false;
                 let orderDate = parseDateString(order.Date);
                 orderDate.setHours(0,0,0,0);
+                
                 let diffDays = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+                
+                // لو حصل أي خلل في قراءة التاريخ، نعتبره أوردر جديد (اليوم) عشان ميختفيش
+                if (isNaN(diffDays)) diffDays = 0; 
                 
                 if (timeFilter === 'today') matchTime = (diffDays === 0);
                 else if (timeFilter === 'week') matchTime = (diffDays <= 7);
@@ -298,7 +325,6 @@
             container.innerHTML = html;
         }
 
-        // دالة البحث المتقدم المستقلة (بتشتغل لما تدوس على الزرار)
         function executeSearch() {
             let query = document.getElementById('advanced-search-input').value.trim().toLowerCase();
             let container = document.getElementById("search-results-container");
