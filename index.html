@@ -16,9 +16,12 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Filters & Cards */
+        /* Filters & Search */
         .filters { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;}
         .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 130px; font-weight: bold;}
+        .search-bar { width: 100%; padding: 12px; border-radius: 5px; border: 2px solid #f0a500; font-size: 16px; font-family: inherit; margin-bottom: 10px; outline: none;}
+        
+        /* Order Cards */
         .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .order-card.new { border-color: #dc3545; box-shadow: 0 0 10px rgba(220,53,69,0.2); }
         .order-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
@@ -35,13 +38,15 @@
         .timer-alert { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; animation: pulse 1.5s infinite; }
         .driver-name { color: #004085; font-weight: bold; font-size: 16px; background: #cce5ff; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px; }
 
-        /* Menu Control */
-        .menu-table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
-        .menu-table th, .menu-table td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        .menu-table th { background: #222; color: #f0a500; }
+        /* Tables (Menu & CRM) */
+        .data-table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; margin-bottom: 20px;}
+        .data-table th, .data-table td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        .data-table th { background: #222; color: #f0a500; }
+        .data-table tr:hover { background-color: #f9f9f9; }
         .toggle-btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 80px;}
         .toggle-on { background: #28a745; color: white; }
         .toggle-off { background: #dc3545; color: white; }
+        .vip-badge { background: #ffc107; color: #000; padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
 
         /* Analytics */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;}
@@ -67,18 +72,20 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-orders', this)">📦 الطلبات المباشرة</button>
-        <button class="tab-btn" onclick="switchTab('tab-menu', this)">🧾 إدارة المنيو</button>
-        <button class="tab-btn" onclick="switchTab('tab-stats', this)">📈 الإحصائيات والتقارير</button>
+        <button class="tab-btn active" onclick="switchTab('tab-orders', this)">📦 الطلبات</button>
+        <button class="tab-btn" onclick="switchTab('tab-menu', this)">🧾 المنيو</button>
+        <button class="tab-btn" onclick="switchTab('tab-stats', this)">📈 الإحصائيات</button>
+        <button class="tab-btn" onclick="switchTab('tab-crm', this)">👥 أرشيف العملاء (CRM)</button>
     </div>
 
     <!-- شاشة الطلبات -->
     <div id="tab-orders" class="tab-content active">
+        <input type="text" id="search-input" class="search-bar" placeholder="🔍 بحث برقم الموبايل، اسم العميل، أو رقم الطلب..." onkeyup="renderOrders()">
         <div class="filters">
             <select id="filter-time" onchange="renderOrders()">
                 <option value="today">📅 اليوم فقط</option>
                 <option value="week">📅 هذا الأسبوع</option>
-                <option value="month">📅 هذا الشهر (حد أقصى)</option>
+                <option value="month">📅 هذا الشهر</option>
             </select>
             <select id="filter-branch" onchange="renderOrders()">
                 <option value="all">📍 كل الفروع</option>
@@ -117,6 +124,12 @@
         </div>
     </div>
 
+    <!-- شاشة أرشيف العملاء (CRM) -->
+    <div id="tab-crm" class="tab-content">
+        <button class="excel-btn" style="background:#17a2b8;" onclick="exportCRMToExcel()">💾 تحميل قائمة العملاء للماركتنج (Excel)</button>
+        <div id="crm-container"><h3 style="text-align: center;">جاري تجميع بيانات العملاء...</h3></div>
+    </div>
+
     <audio id="order-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
@@ -124,7 +137,7 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbzH-nVxNBJ_kZ6124E0kS2Mw2La8DG0TAcFZNuprnlT2nvjmn9GPMatSIE7rwHGmzxSOw/exec";
         
         let allOrders = [];
-        let currentViewOrders = []; // الأوردرات اللي ظاهرة بعد الفلترة
+        let currentViewOrders = []; 
         let lastOrderCount = 0;
         let soundEnabled = false;
 
@@ -164,6 +177,7 @@
                 allOrders = orders;
                 
                 renderOrders(); 
+                renderCRM(); // تحديث أرشيف العملاء
             } catch(e) { document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>"; }
         }
 
@@ -174,18 +188,12 @@
             return Math.floor(diff / 60000);
         }
 
-        // دالة ذكية لتحويل التاريخ من جوجل شيت (عربي أو إنجليزي) لتاريخ برمجي
         function parseDateString(dateStr) {
             if (!dateStr) return new Date();
             let engStr = dateStr.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let datePart = engStr.split(/[\s,]+/)[0]; 
             let parts = datePart.split(/[\/\-]/);
-            if(parts.length >= 3) {
-                let day = parseInt(parts[0]);
-                let month = parseInt(parts[1]) - 1;
-                let year = parseInt(parts[2]);
-                return new Date(year, month, day);
-            }
+            if(parts.length >= 3) return new Date(parts[2], parts[1] - 1, parts[0]);
             return new Date(engStr);
         }
 
@@ -193,37 +201,41 @@
             let timeFilter = document.getElementById('filter-time').value;
             let branchFilter = document.getElementById('filter-branch').value;
             let statusFilter = document.getElementById('filter-status').value;
+            let searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
             let container = document.getElementById("orders-container");
 
             let today = new Date();
             today.setHours(0,0,0,0);
 
-            // تطبيق كل الفلاتر
             currentViewOrders = allOrders.filter(order => {
                 let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
                 let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
                 
-                // فلتر الوقت (اليوم / أسبوع / شهر)
+                // فلتر البحث السريع
+                let matchSearch = true;
+                if (searchQuery !== "") {
+                    matchSearch = (order.Phone && order.Phone.includes(searchQuery)) || 
+                                  (order.Name && order.Name.toLowerCase().includes(searchQuery)) || 
+                                  (order.OrderID && order.OrderID.toLowerCase().includes(searchQuery));
+                }
+
                 let matchTime = false;
                 let orderDate = parseDateString(order.Date);
                 orderDate.setHours(0,0,0,0);
-                
-                let diffTime = today.getTime() - orderDate.getTime();
-                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                let diffDays = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
                 
                 if (timeFilter === 'today') matchTime = (diffDays === 0);
                 else if (timeFilter === 'week') matchTime = (diffDays <= 7);
                 else if (timeFilter === 'month') matchTime = (diffDays <= 30);
 
-                return matchBranch && matchStatus && matchTime;
+                return matchBranch && matchStatus && matchTime && matchSearch;
             });
 
-            // تحديث الإحصائيات أوتوماتيك بناءً على الفلتر!
             calculateStats(currentViewOrders);
             renderHeatmap(currentViewOrders);
 
             if (currentViewOrders.length === 0) {
-                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للفلتر ده 🍔</h3>"; return;
+                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للفلتر أو البحث 🍔</h3>"; return;
             }
 
             let html = "";
@@ -248,7 +260,7 @@
                     <div class="order-header">
                         <div>
                             <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold;">${order.OrderID || 'بدون كود'}</span>
-                            <br><strong>العميل:</strong> ${order.Name} - ${order.Phone} 
+                            <br><strong>العميل:</strong> ${order.Name} - <a href="tel:${order.Phone}" style="color:#007bff; text-decoration:none; font-weight:bold;">${order.Phone} 📞</a>
                             <br><small>🕒 ${order.Date}</small>
                         </div>
                         <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
@@ -315,18 +327,15 @@
             try {
                 let response = await fetch(API_URL + "?action=getMenuAdmin");
                 let menu = await response.json();
-                let html = `<table class="menu-table"><tr><th>الصنف</th><th>فيصل</th><th>نعمة</th><th>نبق</th></tr>`;
-                
+                let html = `<table class="data-table"><tr><th>الصنف</th><th>فيصل</th><th>نعمة</th><th>نبق</th></tr>`;
                 function isAvail(val) {
                     if (val === undefined || val === null) return true;
                     let str = String(val).trim().toLowerCase(); return !(str === "false" || str === "0" || str === "لا" || str === "");
                 }
-
                 menu.forEach(item => {
                     let avF = isAvail(item.Available_Faisal !== undefined ? item.Available_Faisal : item.Available);
                     let avNa = isAvail(item.Available_SharmNaama !== undefined ? item.Available_SharmNaama : item.Available);
                     let avNb = isAvail(item.Available_SharmNabq !== undefined ? item.Available_SharmNabq : item.Available);
-
                     html += `<tr>
                         <td><strong>${item.Name || ''}</strong></td>
                         <td><button class="toggle-btn ${avF ? 'toggle-on':'toggle-off'}" onclick="toggleMenu(${item.row}, 'Faisal', ${!avF}, this)">${avF ? 'متاح ✅':'مقفول ❌'}</button></td>
@@ -348,7 +357,49 @@
             } catch(e) { alert("فشل في التحديث"); btn.innerText = "حاول مجدداً"; }
         }
 
-        // الدالة دي بقت بتاخد الداتا اللي اتفلترت وتحسب عليها
+        // --- نظام أرشيف العملاء (CRM) ---
+        let crmData = [];
+        function renderCRM() {
+            let customers = {};
+            // تجميع أرقام العملاء من كل الأوردرات (حتى القديمة)
+            allOrders.forEach(o => {
+                if(!o.Phone || o.Status.includes("ملغي")) return;
+                let phone = o.Phone;
+                if(!customers[phone]) {
+                    customers[phone] = { name: o.Name, phone: phone, ordersCount: 0, totalSpent: 0 };
+                }
+                customers[phone].ordersCount++;
+                customers[phone].totalSpent += (parseFloat(o.Total) || 0);
+            });
+            
+            // ترتيب العملاء من الأكثر شراء للأقل
+            crmData = Object.values(customers).sort((a,b) => b.totalSpent - a.totalSpent);
+            
+            let html = `<table class="data-table">
+                <tr><th>العميل</th><th>الموبايل</th><th>عدد الطلبات</th><th>إجمالي المشتريات</th></tr>`;
+            
+            crmData.forEach(c => {
+                let isVip = c.ordersCount >= 3 ? `<span class="vip-badge">⭐ VIP</span>` : '';
+                html += `<tr>
+                    <td>${isVip} ${c.name}</td>
+                    <td><a href="https://wa.me/2${c.phone}" target="_blank" style="color:#25D366; font-weight:bold; text-decoration:none;">💬 ${c.phone}</a></td>
+                    <td style="font-weight:bold;">${c.ordersCount}</td>
+                    <td style="color:#d35400; font-weight:bold;">${c.totalSpent} LE</td>
+                </tr>`;
+            });
+            html += `</table>`;
+            document.getElementById('crm-container').innerHTML = html;
+        }
+
+        function exportCRMToExcel() {
+            if(crmData.length === 0) return alert("لا يوجد بيانات للعملاء!");
+            let csv = "data:text/csv;charset=utf-8,\uFEFFالاسم,الموبايل,عدد الطلبات,إجمالي المشتريات\r\n";
+            crmData.forEach(c => { csv += `${c.name.replace(/,/g," ")},${c.phone},${c.ordersCount},${c.totalSpent}\r\n`; });
+            let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
+            link.setAttribute("download", `Manny_Customers_CRM_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
         function calculateStats(dataList) {
             let rev = 0, done = 0, cancel = 0;
             dataList.forEach(o => {
@@ -359,13 +410,10 @@
             document.getElementById("stat-count").innerText = dataList.length;
             document.getElementById("stat-done").innerText = done;
             document.getElementById("stat-canceled").innerText = cancel;
-            
-            // تغيير العنوان عشان المدير يبقى عارف هو بيبص على أرباح إيه
             let timeFilterText = document.getElementById('filter-time').options[document.getElementById('filter-time').selectedIndex].text;
             document.getElementById("stat-title-revenue").innerText = `مبيعات (${timeFilterText}) 💰`;
         }
 
-        // الرسم البياني بيعتمد على الداتا المتفلترة برضه
         function renderHeatmap(dataList) {
             let counts = {}; for(let i=0; i<24; i++) counts[i] = 0;
             dataList.forEach(o => {
@@ -388,7 +436,6 @@
             document.getElementById("heatmap-chart").innerHTML = html || "<p style='text-align:center;'>لا توجد طلبات في هذه الفترة</p>";
         }
 
-        // الإكسيل بينزل الداتا المتفلترة بس (عشان تقدر تبعت تقفيل اليوم للمحاسب بسهولة)
         function exportToExcel() {
             if(currentViewOrders.length === 0) return alert("مفيش أوردرات في الفلتر الحالي!");
             let csv = "data:text/csv;charset=utf-8,\uFEFFرقم الطلب,التاريخ,الاسم,الفرع,الإجمالي,الحالة,الطيار\r\n";
@@ -411,11 +458,6 @@
         document.getElementById('pwa-prompt').addEventListener('click', async () => {
             if (adminPrompt) { adminPrompt.prompt(); adminPrompt = null; document.getElementById('pwa-prompt').style.display = 'none'; }
         });
-        const isIOSAdmin = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOSAdmin && !window.navigator.standalone) {
-            document.getElementById('pwa-prompt').style.display = 'block';
-            document.getElementById('pwa-prompt').innerHTML = "📲 لتثبيت اللوحة على الآيفون: اضغط زر المشاركة ⍗ ثم Add to Home Screen ➕";
-        }
     </script>
 </body>
 </html>
