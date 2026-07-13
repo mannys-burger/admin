@@ -83,9 +83,10 @@
     <div id="tab-orders" class="tab-content active">
         <div class="filters">
             <select id="filter-time" onchange="renderOrders()">
-                <option value="today">📅 اليوم فقط</option>
+                <option value="today">📅 اليوم (أخر 24 ساعة)</option>
                 <option value="week">📅 هذا الأسبوع</option>
                 <option value="month">📅 هذا الشهر</option>
+                <option value="all_time" style="background:#f0a500; color:#222;">⏳ كل الأوقات (أمان)</option>
             </select>
             <select id="filter-branch" onchange="renderOrders()">
                 <option value="all">📍 كل الفروع</option>
@@ -203,16 +204,13 @@
             return Math.floor(diff / 60000);
         }
 
-        // الدالة دي اتحدثت وبقت مضادة لأي كراش (Bulletproof)
         function parseDateString(dateStr) {
             if (!dateStr) return new Date();
             let str = String(dateStr);
             
-            // 1. محاولة القراءة المباشرة (لو التاريخ جي إنجليزي أو ISO)
             let testDate = new Date(str);
             if (!isNaN(testDate.getTime())) return testDate;
 
-            // 2. لو التاريخ جي عربي من الشيت
             let engStr = str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let datePart = engStr.split(/[\s,T]+/)[0]; 
             let parts = datePart.split(/[\/\-]/);
@@ -224,8 +222,7 @@
                 let parsed = new Date(year, month, day);
                 if (!isNaN(parsed.getTime())) return parsed;
             }
-            
-            return new Date(); // لو فشل خالص يعتبره النهارده عشان الأوردر ميختفيش
+            return new Date();
         }
 
         function generateOrderCardHTML(order) {
@@ -244,7 +241,6 @@
                 timersHtml += `<div class="timer-badge">🛵 توصيل: ${deliveryMinutes} دقيقة ${!order.DeliveredTime ? '(في الطريق 🛵)' : ''}</div>`;
             }
 
-            // تظبيط شكل التاريخ لو جي بصيغة برمجية
             let displayDate = order.Date;
             if (String(displayDate).includes("T") && String(displayDate).endsWith("Z")) {
                 let d = new Date(displayDate);
@@ -290,25 +286,26 @@
             let statusFilter = document.getElementById('filter-status').value;
             let container = document.getElementById("orders-container");
 
-            let today = new Date();
-            today.setHours(0,0,0,0);
+            let now = new Date();
 
             currentViewOrders = allOrders.filter(order => {
                 let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
                 let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
                 
-                let matchTime = false;
-                let orderDate = parseDateString(order.Date);
-                orderDate.setHours(0,0,0,0);
+                let matchTime = true;
                 
-                let diffDays = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
-                
-                // لو حصل أي خلل في قراءة التاريخ، نعتبره أوردر جديد (اليوم) عشان ميختفيش
-                if (isNaN(diffDays)) diffDays = 0; 
-                
-                if (timeFilter === 'today') matchTime = (diffDays === 0);
-                else if (timeFilter === 'week') matchTime = (diffDays <= 7);
-                else if (timeFilter === 'month') matchTime = (diffDays <= 30);
+                // الحل الجذري: التعامل مع الساعات بدل الأيام عشان نتفادى مشاكل فرق التوقيت والمستقبل
+                if (timeFilter !== 'all_time') {
+                    let orderDate = parseDateString(order.Date);
+                    let diffHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+                    
+                    if (timeFilter === 'today') {
+                        // أي أوردر من أخر 24 ساعة، أو أي أوردر جي من المستقبل بسبب فرق التوقيت (diffHours بالسالب) بيظهر
+                        matchTime = (diffHours <= 24); 
+                    }
+                    else if (timeFilter === 'week') matchTime = (diffHours <= 24 * 7);
+                    else if (timeFilter === 'month') matchTime = (diffHours <= 24 * 30);
+                }
 
                 return matchBranch && matchStatus && matchTime;
             });
