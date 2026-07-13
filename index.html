@@ -18,7 +18,7 @@
         
         /* Filters & Cards */
         .filters { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;}
-        .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 150px;}
+        .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 130px; font-weight: bold;}
         .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .order-card.new { border-color: #dc3545; box-shadow: 0 0 10px rgba(220,53,69,0.2); }
         .order-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
@@ -56,6 +56,7 @@
     </style>
 </head>
 <body>
+    <div id="pwa-prompt" style="display: none; background: #28a745; color: white; text-align: center; padding: 10px; margin-bottom: 15px; border-radius: 8px; font-weight: bold; cursor: pointer;">📲 اضغط هنا لتثبيت لوحة الإدارة على موبايلك</div>
 
     <div class="header">
         <h1>🍔 Manny's POS System</h1>
@@ -74,6 +75,11 @@
     <!-- شاشة الطلبات -->
     <div id="tab-orders" class="tab-content active">
         <div class="filters">
+            <select id="filter-time" onchange="renderOrders()">
+                <option value="today">📅 اليوم فقط</option>
+                <option value="week">📅 هذا الأسبوع</option>
+                <option value="month">📅 هذا الشهر (حد أقصى)</option>
+            </select>
             <select id="filter-branch" onchange="renderOrders()">
                 <option value="all">📍 كل الفروع</option>
                 <option value="فيصل">فرع فيصل</option>
@@ -98,15 +104,15 @@
 
     <!-- شاشة الإحصائيات -->
     <div id="tab-stats" class="tab-content">
-        <button class="excel-btn" onclick="exportToExcel()">💾 تحميل تقفيل اليوم (Excel)</button>
+        <button class="excel-btn" onclick="exportToExcel()">💾 تحميل تقرير المبيعات (Excel)</button>
         <div class="stats-grid">
-            <div class="stat-card"><h3>إجمالي المبيعات 💰</h3><div id="stat-revenue" class="stat-val">0 LE</div></div>
+            <div class="stat-card"><h3 id="stat-title-revenue">إجمالي المبيعات 💰</h3><div id="stat-revenue" class="stat-val">0 LE</div></div>
             <div class="stat-card"><h3>إجمالي الطلبات 📦</h3><div id="stat-count" class="stat-val">0</div></div>
             <div class="stat-card"><h3>الطلبات المكتملة ✅</h3><div id="stat-done" class="stat-val">0</div></div>
             <div class="stat-card"><h3>الطلبات الملغية ❌</h3><div id="stat-canceled" class="stat-val">0</div></div>
         </div>
         <div class="heatmap-container">
-            <h2 style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">⏰ أوقات الذروة (Heatmap)</h2>
+            <h2 style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">⏰ أوقات الذروة للفترة المحددة</h2>
             <div id="heatmap-chart" style="margin-top: 20px;"></div>
         </div>
     </div>
@@ -115,9 +121,10 @@
 
     <script>
         // ⚠️⚠️ اللينك الجديد بتاع جوجل سكريبت ⚠️⚠️
-        const API_URL = "https://script.google.com/macros/s/AKfycbzH-nVxNBJ_kZ6124E0kS2Mw2La8DG0TAcFZNuprnlT2nvjmn9GPMatSIE7rwHGmzxSOw/exec";
+        const API_URL = "حط_اللينك_بتاعك_هنا";
         
         let allOrders = [];
+        let currentViewOrders = []; // الأوردرات اللي ظاهرة بعد الفلترة
         let lastOrderCount = 0;
         let soundEnabled = false;
 
@@ -156,7 +163,7 @@
                 lastOrderCount = orders.length;
                 allOrders = orders;
                 
-                renderOrders(); calculateStats(); renderHeatmap();
+                renderOrders(); 
             } catch(e) { document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>"; }
         }
 
@@ -167,23 +174,60 @@
             return Math.floor(diff / 60000);
         }
 
+        // دالة ذكية لتحويل التاريخ من جوجل شيت (عربي أو إنجليزي) لتاريخ برمجي
+        function parseDateString(dateStr) {
+            if (!dateStr) return new Date();
+            let engStr = dateStr.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            let datePart = engStr.split(/[\s,]+/)[0]; 
+            let parts = datePart.split(/[\/\-]/);
+            if(parts.length >= 3) {
+                let day = parseInt(parts[0]);
+                let month = parseInt(parts[1]) - 1;
+                let year = parseInt(parts[2]);
+                return new Date(year, month, day);
+            }
+            return new Date(engStr);
+        }
+
         function renderOrders() {
+            let timeFilter = document.getElementById('filter-time').value;
             let branchFilter = document.getElementById('filter-branch').value;
             let statusFilter = document.getElementById('filter-status').value;
             let container = document.getElementById("orders-container");
 
-            let filteredOrders = allOrders.filter(order => {
+            let today = new Date();
+            today.setHours(0,0,0,0);
+
+            // تطبيق كل الفلاتر
+            currentViewOrders = allOrders.filter(order => {
                 let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
                 let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
-                return matchBranch && matchStatus;
+                
+                // فلتر الوقت (اليوم / أسبوع / شهر)
+                let matchTime = false;
+                let orderDate = parseDateString(order.Date);
+                orderDate.setHours(0,0,0,0);
+                
+                let diffTime = today.getTime() - orderDate.getTime();
+                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (timeFilter === 'today') matchTime = (diffDays === 0);
+                else if (timeFilter === 'week') matchTime = (diffDays <= 7);
+                else if (timeFilter === 'month') matchTime = (diffDays <= 30);
+
+                return matchBranch && matchStatus && matchTime;
             });
 
-            if (filteredOrders.length === 0) {
-                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة 🍔</h3>"; return;
+            // تحديث الإحصائيات أوتوماتيك بناءً على الفلتر!
+            calculateStats(currentViewOrders);
+            renderHeatmap(currentViewOrders);
+
+            if (currentViewOrders.length === 0) {
+                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للفلتر ده 🍔</h3>"; return;
             }
 
             let html = "";
-            filteredOrders.forEach(order => {
+            currentViewOrders.forEach(order => {
                 let isNew = order.Status.includes("جديد");
                 let statusColor = isNew ? "#dc3545" : (order.Status.includes("تجهيز") ? "#f0a500" : (order.Status.includes("طريق") ? "#17a2b8" : "#28a745"));
                 
@@ -222,7 +266,8 @@
                     
                     <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
                     <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
-                        <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 بدء تجهيز</button>
+                        <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
+                        <button class="btn btn-done" onclick="changeStatus(${order.row}, 'تم التوصيل ✅')">✅ تقفيل الأوردر</button>
                         <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
                     </div>
                     <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون المطبخ</button>
@@ -238,7 +283,6 @@
             } catch(e) { alert("حصلت مشكلة في تحديث الحالة"); }
         }
 
-        // الطباعة
         function printReceipt(rowId) {
             let order = allOrders.find(o => o.row === rowId);
             if(!order) return;
@@ -267,7 +311,6 @@
             printWin.document.close(); printWin.focus(); setTimeout(() => { printWin.print(); printWin.close(); }, 800);
         }
 
-        // المنيو والإحصائيات
         async function fetchAdminMenu() {
             try {
                 let response = await fetch(API_URL + "?action=getMenuAdmin");
@@ -305,21 +348,27 @@
             } catch(e) { alert("فشل في التحديث"); btn.innerText = "حاول مجدداً"; }
         }
 
-        function calculateStats() {
+        // الدالة دي بقت بتاخد الداتا اللي اتفلترت وتحسب عليها
+        function calculateStats(dataList) {
             let rev = 0, done = 0, cancel = 0;
-            allOrders.forEach(o => {
+            dataList.forEach(o => {
                 if (o.Status.includes("ملغي")) cancel++;
                 else { rev += (parseInt(o.Total) || 0); if (o.Status.includes("توصيل")) done++; }
             });
             document.getElementById("stat-revenue").innerText = rev + " LE";
-            document.getElementById("stat-count").innerText = allOrders.length;
+            document.getElementById("stat-count").innerText = dataList.length;
             document.getElementById("stat-done").innerText = done;
             document.getElementById("stat-canceled").innerText = cancel;
+            
+            // تغيير العنوان عشان المدير يبقى عارف هو بيبص على أرباح إيه
+            let timeFilterText = document.getElementById('filter-time').options[document.getElementById('filter-time').selectedIndex].text;
+            document.getElementById("stat-title-revenue").innerText = `مبيعات (${timeFilterText}) 💰`;
         }
 
-        function renderHeatmap() {
+        // الرسم البياني بيعتمد على الداتا المتفلترة برضه
+        function renderHeatmap(dataList) {
             let counts = {}; for(let i=0; i<24; i++) counts[i] = 0;
-            allOrders.forEach(o => {
+            dataList.forEach(o => {
                 let match = o.Date.match(/(\d+):/); let isPM = o.Date.includes("م") || o.Date.toLowerCase().includes("pm");
                 if (match) { let h = parseInt(match[1]); if (isPM && h !== 12) h += 12; if (!isPM && h === 12) h = 0; counts[h]++; }
             });
@@ -336,19 +385,37 @@
                     </div>`;
                 }
             }
-            document.getElementById("heatmap-chart").innerHTML = html || "<p style='text-align:center;'>لا توجد طلبات</p>";
+            document.getElementById("heatmap-chart").innerHTML = html || "<p style='text-align:center;'>لا توجد طلبات في هذه الفترة</p>";
         }
 
+        // الإكسيل بينزل الداتا المتفلترة بس (عشان تقدر تبعت تقفيل اليوم للمحاسب بسهولة)
         function exportToExcel() {
-            if(allOrders.length === 0) return alert("مفيش أوردرات!");
-            let csv = "data:text/csv;charset=utf-8,\uFEFFرقم الطلب,التاريخ,الاسم,الفرع,الإجمالي,الحالة\r\n";
-            allOrders.forEach(o => { csv += `${o.OrderID},${o.Date.replace(/,/g," ")},${o.Name.replace(/,/g," ")},${o.Branch},${o.Total},${o.Status}\r\n`; });
+            if(currentViewOrders.length === 0) return alert("مفيش أوردرات في الفلتر الحالي!");
+            let csv = "data:text/csv;charset=utf-8,\uFEFFرقم الطلب,التاريخ,الاسم,الفرع,الإجمالي,الحالة,الطيار\r\n";
+            currentViewOrders.forEach(o => { csv += `${o.OrderID},${o.Date.replace(/,/g," ")},${o.Name.replace(/,/g," ")},${o.Branch},${o.Total},${o.Status},${o.Driver||'بدون'}\r\n`; });
             let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
-            link.setAttribute("download", `Orders_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute("download", `Orders_Report_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         window.onload = fetchOrders; setInterval(fetchOrders, 20000); 
+
+        // PWA Setup
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+        }
+        let adminPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); adminPrompt = e; document.getElementById('pwa-prompt').style.display = 'block';
+        });
+        document.getElementById('pwa-prompt').addEventListener('click', async () => {
+            if (adminPrompt) { adminPrompt.prompt(); adminPrompt = null; document.getElementById('pwa-prompt').style.display = 'none'; }
+        });
+        const isIOSAdmin = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOSAdmin && !window.navigator.standalone) {
+            document.getElementById('pwa-prompt').style.display = 'block';
+            document.getElementById('pwa-prompt').innerHTML = "📲 لتثبيت اللوحة على الآيفون: اضغط زر المشاركة ⍗ ثم Add to Home Screen ➕";
+        }
     </script>
 </body>
 </html>
