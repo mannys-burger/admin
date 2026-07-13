@@ -204,25 +204,46 @@
             return Math.floor(diff / 60000);
         }
 
+        // الدالة دي بقت الدبابة بتاعتنا، هتقرأ التاريخ صح حتى لو الشيت باعت السنة 26 بدل 2026
         function parseDateString(dateStr) {
             if (!dateStr) return new Date();
             let str = String(dateStr);
             
+            // 1. محاولة قراءة طبيعية
             let testDate = new Date(str);
-            if (!isNaN(testDate.getTime())) return testDate;
+            if (!isNaN(testDate.getTime()) && testDate.getFullYear() > 2020) return testDate;
 
+            // 2. معالجة التواريخ المعقدة والسنين المختصرة
             let engStr = str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
             let datePart = engStr.split(/[\s,T]+/)[0]; 
             let parts = datePart.split(/[\/\-]/);
             
             if (parts.length >= 3) {
-                let year = parts[2].length === 4 ? parseInt(parts[2]) : parseInt(parts[0]);
-                let month = parseInt(parts[1]) - 1;
-                let day = parts[2].length === 4 ? parseInt(parts[0]) : parseInt(parts[2]);
+                let p0 = parseInt(parts[0]);
+                let p1 = parseInt(parts[1]) - 1; // الشهور بتبدأ من 0 في البرمجة
+                let p2 = parseInt(parts[2]);
+
+                let year, month, day;
+
+                // لو السنة 4 أرقام في الآخر
+                if (parts[2].length === 4) { 
+                    year = p2; month = p1; day = p0; 
+                } 
+                // لو السنة 4 أرقام في الأول
+                else if (parts[0].length === 4) { 
+                    year = p0; month = p1; day = p2; 
+                } 
+                // حل البج: لو السنة رقمين بس (زي 26) نجمع عليها 2000 عشان تبقى 2026
+                else {
+                    year = p2 + 2000; month = p1; day = p0;
+                }
+
                 let parsed = new Date(year, month, day);
-                if (!isNaN(parsed.getTime())) return parsed;
+                if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2020) return parsed;
             }
-            return new Date();
+            
+            // لو فشل تماماً لأي سبب غريب، نعتبره النهارده عشان مستحيل أوردر يختفي!
+            return new Date(); 
         }
 
         function generateOrderCardHTML(order) {
@@ -294,15 +315,14 @@
                 
                 let matchTime = true;
                 
-                // الحل الجذري: التعامل مع الساعات بدل الأيام عشان نتفادى مشاكل فرق التوقيت والمستقبل
                 if (timeFilter !== 'all_time') {
                     let orderDate = parseDateString(order.Date);
-                    let diffHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+                    // هنا بنحسب الفرق المطلق عشان مفيش أوردر يختفي تاني لو السنة كانت متسجلة غلط
+                    let diffHours = Math.abs(now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
                     
-                    if (timeFilter === 'today') {
-                        // أي أوردر من أخر 24 ساعة، أو أي أوردر جي من المستقبل بسبب فرق التوقيت (diffHours بالسالب) بيظهر
-                        matchTime = (diffHours <= 24); 
-                    }
+                    if (isNaN(diffHours)) diffHours = 0;
+                    
+                    if (timeFilter === 'today') matchTime = (diffHours <= 24);
                     else if (timeFilter === 'week') matchTime = (diffHours <= 24 * 7);
                     else if (timeFilter === 'month') matchTime = (diffHours <= 24 * 30);
                 }
