@@ -11,7 +11,7 @@
         body { font-family: Tahoma, Arial; background: #f2f4f7; padding: 20px; margin: 0; color: #222; }
         .header { text-align: center; background: #222; color: #f0a500; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;}
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
-        .tab-btn { flex: 1; padding: 15px; font-size: 16px; font-weight: bold; background: #ddd; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; min-width: 120px;}
+        .tab-btn { flex: 1; padding: 12px; font-size: 15px; font-weight: bold; background: #ddd; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; min-width: 100px;}
         .tab-btn.active { background: #f0a500; color: #222; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -19,7 +19,7 @@
         /* Filters & Search */
         .filters { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-wrap: wrap;}
         .filters select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; font-family: inherit; font-size: 14px; min-width: 130px; font-weight: bold;}
-        .search-bar { width: 100%; padding: 12px; border-radius: 5px; border: 2px solid #f0a500; font-size: 16px; font-family: inherit; margin-bottom: 10px; outline: none;}
+        .search-bar { flex: 1; padding: 12px; border-radius: 5px; border: 2px solid #f0a500; font-size: 16px; font-family: inherit; outline: none; min-width: 200px;}
         
         /* Order Cards */
         .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -73,14 +73,14 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('tab-orders', this)">📦 الطلبات</button>
+        <button class="tab-btn" onclick="switchTab('tab-search', this)">🔍 البحث</button>
         <button class="tab-btn" onclick="switchTab('tab-menu', this)">🧾 المنيو</button>
         <button class="tab-btn" onclick="switchTab('tab-stats', this)">📈 الإحصائيات</button>
-        <button class="tab-btn" onclick="switchTab('tab-crm', this)">👥 أرشيف العملاء (CRM)</button>
+        <button class="tab-btn" onclick="switchTab('tab-crm', this)">👥 CRM</button>
     </div>
 
-    <!-- شاشة الطلبات -->
+    <!-- 1. شاشة الطلبات الأساسية (مخصصة للفلاتر فقط) -->
     <div id="tab-orders" class="tab-content active">
-        <input type="text" id="search-input" class="search-bar" placeholder="🔍 بحث برقم الموبايل، اسم العميل، أو رقم الطلب..." onkeyup="renderOrders()">
         <div class="filters">
             <select id="filter-time" onchange="renderOrders()">
                 <option value="today">📅 اليوم فقط</option>
@@ -104,12 +104,23 @@
         <div id="orders-container"><h3 style="text-align: center;">جاري تحميل الأوردرات...</h3></div>
     </div>
 
-    <!-- شاشة المنيو -->
+    <!-- 2. شاشة البحث المتقدمة (مستقلة تماماً) -->
+    <div id="tab-search" class="tab-content">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <input type="text" id="advanced-search-input" class="search-bar" placeholder="🔍 اكتب رقم الموبايل، اسم العميل، أو رقم الطلب...">
+            <button class="btn btn-prep" style="margin: 0; min-width: 120px;" onclick="executeSearch()">🔍 ابحث</button>
+        </div>
+        <div id="search-results-container">
+            <h3 style="text-align: center; color: #555;">اكتب البيانات فوق ودوس "ابحث" عشان تطلعلك نتيجة 🍔</h3>
+        </div>
+    </div>
+
+    <!-- 3. شاشة المنيو -->
     <div id="tab-menu" class="tab-content">
         <div id="menu-container"><h3 style="text-align: center;">جاري تحميل المنيو...</h3></div>
     </div>
 
-    <!-- شاشة الإحصائيات -->
+    <!-- 4. شاشة الإحصائيات -->
     <div id="tab-stats" class="tab-content">
         <button class="excel-btn" onclick="exportToExcel()">💾 تحميل تقرير المبيعات (Excel)</button>
         <div class="stats-grid">
@@ -124,7 +135,7 @@
         </div>
     </div>
 
-    <!-- شاشة أرشيف العملاء (CRM) -->
+    <!-- 5. شاشة أرشيف العملاء (CRM) -->
     <div id="tab-crm" class="tab-content">
         <button class="excel-btn" style="background:#17a2b8;" onclick="exportCRMToExcel()">💾 تحميل قائمة العملاء للماركتنج (Excel)</button>
         <div id="crm-container"><h3 style="text-align: center;">جاري تجميع بيانات العملاء...</h3></div>
@@ -148,7 +159,6 @@
             btn.classList.add('active');
             
             if(tabId === 'tab-menu' && document.getElementById('menu-container').innerHTML.includes('جاري')) fetchAdminMenu();
-            // الـ CRM بيحسب بياناته بس لما التابة بتاعته تتفتح عشان مايتقلش السيستم
             if(tabId === 'tab-crm') renderCRM(); 
         }
 
@@ -181,10 +191,8 @@
                 
                 renderOrders(); 
                 
-                // تحديث الـ CRM فقط في حالة إن التابة دي هي اللي مفتوحة قدام الكاشير حالياً
-                if(document.getElementById('tab-crm').classList.contains('active')) {
-                    renderCRM(); 
-                }
+                if(document.getElementById('tab-crm').classList.contains('active')) renderCRM(); 
+                if(document.getElementById('tab-search').classList.contains('active')) executeSearch(); 
             } catch(e) { document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>"; }
         }
 
@@ -204,11 +212,59 @@
             return new Date(engStr);
         }
 
+        // دالة مجمعة لإنشاء كارت الأوردر عشان نستخدمها في الطلبات وفي البحث
+        function generateOrderCardHTML(order) {
+            let isNew = order.Status.includes("جديد");
+            let statusColor = isNew ? "#dc3545" : (order.Status.includes("تجهيز") ? "#f0a500" : (order.Status.includes("طريق") ? "#17a2b8" : "#28a745"));
+            
+            let prepMinutes = calculateMinutes(order.PrepTime, order.OutTime);
+            let deliveryMinutes = calculateMinutes(order.OutTime, order.DeliveredTime);
+            
+            let timersHtml = "";
+            if (order.PrepTime) {
+                let alertClass = (!order.OutTime && prepMinutes > 15) ? "timer-alert" : "";
+                timersHtml += `<div class="timer-badge ${alertClass}">👨‍🍳 المطبخ: ${prepMinutes} دقيقة ${!order.OutTime ? '(جاري ⏳)' : ''}</div> `;
+            }
+            if (order.OutTime) {
+                timersHtml += `<div class="timer-badge">🛵 توصيل: ${deliveryMinutes} دقيقة ${!order.DeliveredTime ? '(في الطريق 🛵)' : ''}</div>`;
+            }
+
+            return `
+            <div class="order-card ${isNew ? 'new' : ''}">
+                <div class="order-header">
+                    <div>
+                        <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold;">${order.OrderID || 'بدون كود'}</span>
+                        <br><strong>العميل:</strong> ${order.Name} - <a href="tel:${order.Phone}" style="color:#007bff; text-decoration:none; font-weight:bold;">${order.Phone} 📞</a>
+                        <br><small>🕒 ${order.Date}</small>
+                    </div>
+                    <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
+                </div>
+                <div><strong>📍 الفرع:</strong> ${order.Branch}</div>
+                <div><strong>🏠 العنوان:</strong> ${order.Address}</div>
+                
+                ${order.Driver ? `<div class="driver-name">👤 الطيار: ${order.Driver}</div>` : ''}
+                ${timersHtml ? `<div style="margin-top:10px;">${timersHtml}</div>` : ''}
+                
+                <div class="details">${order.Details}</div>
+                ${order.Notes ? `<div style="color:red; font-weight:bold;">📝 ملاحظة: ${order.Notes}</div>` : ''}
+                
+                <div style="font-size: 18px; font-weight: bold; color: #d35400; margin-top: 10px;">💰 الإجمالي: ${order.Total} LE</div>
+                
+                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
+                    <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
+                    <button class="btn btn-done" onclick="changeStatus(${order.row}, 'تم التوصيل ✅')">✅ تقفيل</button>
+                    <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
+                </div>
+                <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون</button>
+            </div>`;
+        }
+
+        // دالة عرض الطلبات الأساسية (مفيهاش بحث خلاص)
         function renderOrders() {
             let timeFilter = document.getElementById('filter-time').value;
             let branchFilter = document.getElementById('filter-branch').value;
             let statusFilter = document.getElementById('filter-status').value;
-            let searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
             let container = document.getElementById("orders-container");
 
             let today = new Date();
@@ -218,15 +274,6 @@
                 let matchBranch = branchFilter === 'all' || (order.Branch && order.Branch.includes(branchFilter));
                 let matchStatus = statusFilter === 'all' || (order.Status && order.Status.includes(statusFilter));
                 
-                // حل بج البحث: تحويل كل حاجة لنص (String) قبل البحث عشان الأرقام متعملش كراش
-                let matchSearch = true;
-                if (searchQuery !== "") {
-                    let sPhone = String(order.Phone || "").toLowerCase();
-                    let sName = String(order.Name || "").toLowerCase();
-                    let sId = String(order.OrderID || "").toLowerCase();
-                    matchSearch = sPhone.includes(searchQuery) || sName.includes(searchQuery) || sId.includes(searchQuery);
-                }
-
                 let matchTime = false;
                 let orderDate = parseDateString(order.Date);
                 orderDate.setHours(0,0,0,0);
@@ -236,63 +283,45 @@
                 else if (timeFilter === 'week') matchTime = (diffDays <= 7);
                 else if (timeFilter === 'month') matchTime = (diffDays <= 30);
 
-                return matchBranch && matchStatus && matchTime && matchSearch;
+                return matchBranch && matchStatus && matchTime;
             });
 
             calculateStats(currentViewOrders);
             renderHeatmap(currentViewOrders);
 
             if (currentViewOrders.length === 0) {
-                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للفلتر أو البحث 🍔</h3>"; return;
+                container.innerHTML = "<h3 style='text-align:center;'>مفيش أوردرات مطابقة للفلاتر دي 🍔</h3>"; return;
             }
 
             let html = "";
-            currentViewOrders.forEach(order => {
-                let isNew = order.Status.includes("جديد");
-                let statusColor = isNew ? "#dc3545" : (order.Status.includes("تجهيز") ? "#f0a500" : (order.Status.includes("طريق") ? "#17a2b8" : "#28a745"));
-                
-                let prepMinutes = calculateMinutes(order.PrepTime, order.OutTime);
-                let deliveryMinutes = calculateMinutes(order.OutTime, order.DeliveredTime);
-                
-                let timersHtml = "";
-                if (order.PrepTime) {
-                    let alertClass = (!order.OutTime && prepMinutes > 15) ? "timer-alert" : "";
-                    timersHtml += `<div class="timer-badge ${alertClass}">👨‍🍳 تجهيز المطبخ: ${prepMinutes} دقيقة ${!order.OutTime ? '(جاري ⏳)' : ''}</div> `;
-                }
-                if (order.OutTime) {
-                    timersHtml += `<div class="timer-badge">🛵 توصيل الطيار: ${deliveryMinutes} دقيقة ${!order.DeliveredTime ? '(في الطريق 🛵)' : ''}</div>`;
-                }
+            currentViewOrders.forEach(order => { html += generateOrderCardHTML(order); });
+            container.innerHTML = html;
+        }
 
-                html += `
-                <div class="order-card ${isNew ? 'new' : ''}">
-                    <div class="order-header">
-                        <div>
-                            <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold;">${order.OrderID || 'بدون كود'}</span>
-                            <br><strong>العميل:</strong> ${order.Name} - <a href="tel:${order.Phone}" style="color:#007bff; text-decoration:none; font-weight:bold;">${order.Phone} 📞</a>
-                            <br><small>🕒 ${order.Date}</small>
-                        </div>
-                        <div><span class="status-badge" style="background:${statusColor}; color: ${statusColor==='#f0a500'?'#222':'#fff'};">${order.Status}</span></div>
-                    </div>
-                    <div><strong>📍 الفرع:</strong> ${order.Branch}</div>
-                    <div><strong>🏠 العنوان:</strong> ${order.Address}</div>
-                    
-                    ${order.Driver ? `<div class="driver-name">👤 الطيار المستلم: ${order.Driver}</div>` : ''}
-                    ${timersHtml ? `<div style="margin-top:10px;">${timersHtml}</div>` : ''}
-                    
-                    <div class="details">${order.Details}</div>
-                    ${order.Notes ? `<div style="color:red; font-weight:bold;">📝 ملاحظة: ${order.Notes}</div>` : ''}
-                    
-                    <div style="font-size: 18px; font-weight: bold; color: #d35400; margin-top: 10px;">💰 الإجمالي: ${order.Total} LE</div>
-                    
-                    <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                    <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
-                        <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
-                        <button class="btn btn-done" onclick="changeStatus(${order.row}, 'تم التوصيل ✅')">✅ تقفيل الأوردر</button>
-                        <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
-                    </div>
-                    <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون المطبخ</button>
-                </div>`;
+        // دالة البحث المتقدم المستقلة (بتشتغل لما تدوس على الزرار)
+        function executeSearch() {
+            let query = document.getElementById('advanced-search-input').value.trim().toLowerCase();
+            let container = document.getElementById("search-results-container");
+            
+            if(query === "") {
+                container.innerHTML = "<h3 style='text-align:center; color:#dc3545;'>برجاء كتابة رقم الموبايل أو الاسم أولاً! ⚠️</h3>";
+                return;
+            }
+
+            let searchResults = allOrders.filter(order => {
+                let sPhone = String(order.Phone || "").toLowerCase();
+                let sName = String(order.Name || "").toLowerCase();
+                let sId = String(order.OrderID || "").toLowerCase();
+                return sPhone.includes(query) || sName.includes(query) || sId.includes(query);
             });
+
+            if (searchResults.length === 0) {
+                container.innerHTML = `<h3 style='text-align:center;'>مفيش أي أوردر متسجل بالبيانات دي: "${query}" ❌</h3>`; 
+                return;
+            }
+
+            let html = `<h4 style="text-align:center; background:#e8f5e9; padding:10px; border-radius:5px;">✅ لقينا ${searchResults.length} أوردر للعميل ده:</h4>`;
+            searchResults.forEach(order => { html += generateOrderCardHTML(order); });
             container.innerHTML = html;
         }
 
