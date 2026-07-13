@@ -204,45 +204,47 @@
             return Math.floor(diff / 60000);
         }
 
-        // الدالة دي بقت الدبابة بتاعتنا، هتقرأ التاريخ صح حتى لو الشيت باعت السنة 26 بدل 2026
+        // دالة قراءة التاريخ المحصنة ضد أي لخبطة من جوجل شيت
         function parseDateString(dateStr) {
             if (!dateStr) return new Date();
             let str = String(dateStr);
             
-            // 1. محاولة قراءة طبيعية
-            let testDate = new Date(str);
+            let engStr = str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            let cleanStr = engStr.replace(/[صم]/g, '').trim();
+
+            let testDate = new Date(cleanStr);
             if (!isNaN(testDate.getTime()) && testDate.getFullYear() > 2020) return testDate;
 
-            // 2. معالجة التواريخ المعقدة والسنين المختصرة
-            let engStr = str.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
-            let datePart = engStr.split(/[\s,T]+/)[0]; 
+            let datePart = cleanStr.split(/[\s,T]+/)[0]; 
             let parts = datePart.split(/[\/\-]/);
             
             if (parts.length >= 3) {
-                let p0 = parseInt(parts[0]);
-                let p1 = parseInt(parts[1]) - 1; // الشهور بتبدأ من 0 في البرمجة
-                let p2 = parseInt(parts[2]);
+                let num0 = parseInt(parts[0]);
+                let num1 = parseInt(parts[1]);
+                let num2 = parseInt(parts[2]);
+                
+                let year = new Date().getFullYear(), month = 0, day = 1;
 
-                let year, month, day;
-
-                // لو السنة 4 أرقام في الآخر
-                if (parts[2].length === 4) { 
-                    year = p2; month = p1; day = p0; 
-                } 
-                // لو السنة 4 أرقام في الأول
-                else if (parts[0].length === 4) { 
-                    year = p0; month = p1; day = p2; 
-                } 
-                // حل البج: لو السنة رقمين بس (زي 26) نجمع عليها 2000 عشان تبقى 2026
-                else {
-                    year = p2 + 2000; month = p1; day = p0;
+                if (parts[2] && parts[2].length >= 4) {
+                    year = num2;
+                    if (num0 > 12) { day = num0; month = num1 - 1; }
+                    else if (num1 > 12) { day = num1; month = num0 - 1; }
+                    else { day = num0; month = num1 - 1; }
+                } else if (parts[0] && parts[0].length >= 4) {
+                    year = num0;
+                    if (num2 > 12) { day = num2; month = num1 - 1; }
+                    else if (num1 > 12) { day = num1; month = num2 - 1; }
+                    else { day = num2; month = num1 - 1; }
+                } else {
+                    year = num2 + 2000;
+                    if (num0 > 12) { day = num0; month = num1 - 1; }
+                    else { day = num0; month = num1 - 1; }
                 }
-
+                
                 let parsed = new Date(year, month, day);
-                if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2020) return parsed;
+                if (!isNaN(parsed.getTime())) return parsed;
             }
             
-            // لو فشل تماماً لأي سبب غريب، نعتبره النهارده عشان مستحيل أوردر يختفي!
             return new Date(); 
         }
 
@@ -316,15 +318,21 @@
                 let matchTime = true;
                 
                 if (timeFilter !== 'all_time') {
-                    let orderDate = parseDateString(order.Date);
-                    // هنا بنحسب الفرق المطلق عشان مفيش أوردر يختفي تاني لو السنة كانت متسجلة غلط
-                    let diffHours = Math.abs(now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+                    // القاعدة الذهبية: الأوردرات النشطة (جديد، تجهيز، طريق) متختفيش أبداً من فلتر اليوم!
+                    let isActive = order.Status.includes("جديد") || order.Status.includes("تجهيز") || order.Status.includes("طريق");
                     
-                    if (isNaN(diffHours)) diffHours = 0;
-                    
-                    if (timeFilter === 'today') matchTime = (diffHours <= 24);
-                    else if (timeFilter === 'week') matchTime = (diffHours <= 24 * 7);
-                    else if (timeFilter === 'month') matchTime = (diffHours <= 24 * 30);
+                    if (isActive && timeFilter === 'today') {
+                        matchTime = true; // اعرضه غصب عن أي تاريخ
+                    } else {
+                        let orderDate = parseDateString(order.Date);
+                        let diffHours = Math.abs(now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+                        
+                        if (isNaN(diffHours)) diffHours = 0;
+                        
+                        if (timeFilter === 'today') matchTime = (diffHours <= 24);
+                        else if (timeFilter === 'week') matchTime = (diffHours <= 24 * 7);
+                        else if (timeFilter === 'month') matchTime = (diffHours <= 24 * 30);
+                    }
                 }
 
                 return matchBranch && matchStatus && matchTime;
