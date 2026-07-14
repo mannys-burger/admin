@@ -106,14 +106,14 @@
         <div id="orders-container"><h3 style="text-align: center;">جاري تحميل الأوردرات...</h3></div>
     </div>
 
-    <!-- 2. شاشة البحث المتقدمة -->
+    <!-- 2. شاشة البحث المتقدمة (تم تعديلها للبحث في السيرفر) -->
     <div id="tab-search" class="tab-content">
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <input type="text" id="advanced-search-input" class="search-bar" placeholder="🔍 اكتب رقم الموبايل، اسم العميل، أو رقم الطلب...">
-            <button class="btn btn-prep" style="margin: 0; min-width: 120px;" onclick="executeSearch()">🔍 ابحث</button>
+            <button class="btn btn-prep" style="margin: 0; min-width: 120px;" onclick="executeSearch()">🔍 ابحث في الأرشيف</button>
         </div>
         <div id="search-results-container">
-            <h3 style="text-align: center; color: #555;">اكتب البيانات فوق ودوس "ابحث" عشان تطلعلك نتيجة 🍔</h3>
+            <h3 style="text-align: center; color: #555;">اكتب البيانات فوق ودوس "ابحث" عشان تطلعلك كل أوردرات العميل 🍔</h3>
         </div>
     </div>
 
@@ -200,7 +200,6 @@
                 
                 if(document.getElementById('tab-orders').classList.contains('active')) renderOrders();
                 if(document.getElementById('tab-crm').classList.contains('active')) renderCRM(); 
-                if(document.getElementById('tab-search').classList.contains('active')) executeSearch(); 
                 if(document.getElementById('tab-canceled').classList.contains('active')) renderCanceled(); 
             } catch(e) { document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر!</h3>"; }
         }
@@ -254,6 +253,8 @@
         function generateOrderCardHTML(order) {
             let isNew = order.Status.includes("جديد");
             let isCanceled = order.Status.includes("ملغي");
+            let isArchive = order.isArchive ? true : false; // التحقق من الأرشيف
+
             let statusColor = isNew ? "#dc3545" : (order.Status.includes("تجهيز") ? "#f0a500" : (order.Status.includes("طريق") ? "#17a2b8" : (isCanceled ? "#333" : "#28a745")));
             
             let prepMinutes = calculateMinutes(order.PrepTime, order.OutTime);
@@ -274,17 +275,27 @@
                 if (!isNaN(d.getTime())) displayDate = d.toLocaleString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             }
 
-            // --- حل مشكلة الصفر في الإدمن كمان ---
             let fixedPhone = String(order.Phone || "");
             if (fixedPhone.length === 10 && fixedPhone.startsWith("1")) {
                 fixedPhone = "0" + fixedPhone;
             }
 
+            // تحديد شكل الأزرار بناءً على هل الأوردر في الأرشيف ولا لسه شغال
+            let actionButtonsHtml = isArchive ? 
+                `<div style="color: #6c757d; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">هذا الطلب مؤرشف ولا يمكن تعديل حالته 📦</div>` 
+                :
+                `<div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
+                    <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
+                    <button class="btn btn-done" onclick="changeStatus(${order.row}, 'تم التوصيل ✅')">✅ تقفيل</button>
+                    <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
+                </div>`;
+
             return `
-            <div class="order-card ${isNew ? 'new' : ''}" ${isCanceled ? 'style="opacity: 0.8; border-color: #999;"' : ''}>
+            <div class="order-card ${isNew ? 'new' : ''}" ${isCanceled || isArchive ? 'style="opacity: 0.8; border-color: #999;"' : ''}>
                 <div class="order-header">
                     <div>
                         <span style="background: #222; color:#f0a500; padding:3px 8px; border-radius:5px; font-weight:bold;">${order.OrderID || 'بدون كود'}</span>
+                        ${isArchive ? `<span style="background: #6c757d; color: #fff; font-size: 11px; padding: 2px 5px; border-radius: 3px; margin-right: 5px;">أرشيف 📦</span>` : ''}
                         <br><strong>العميل:</strong> ${order.Name} - <a href="tel:${fixedPhone}" style="color:#007bff; text-decoration:none; font-weight:bold;">${fixedPhone} 📞</a>
                         <br><small>🕒 ${displayDate}</small>
                     </div>
@@ -302,11 +313,9 @@
                 <div style="font-size: 18px; font-weight: bold; color: #d35400; margin-top: 10px;">💰 الإجمالي: ${order.Total} LE</div>
                 
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                <div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
-                    <button class="btn btn-prep" onclick="changeStatus(${order.row}, 'جاري التجهيز ⏳')">👨‍🍳 تجهيز</button>
-                    <button class="btn btn-done" onclick="changeStatus(${order.row}, 'تم التوصيل ✅')">✅ تقفيل</button>
-                    <button class="btn btn-cancel" onclick="changeStatus(${order.row}, 'ملغي ❌')">❌ إلغاء</button>
-                </div>
+                
+                ${actionButtonsHtml}
+                
                 <button class="btn btn-print" onclick="printReceipt(${order.row})">🖨️ طباعة بون</button>
             </div>`;
         }
@@ -370,8 +379,9 @@
             container.innerHTML = html;
         }
 
+        // --- دالة البحث الذكية المتصلة بالسيرفر ---
         function executeSearch() {
-            let query = document.getElementById('advanced-search-input').value.trim().toLowerCase();
+            let query = document.getElementById('advanced-search-input').value.trim();
             let container = document.getElementById("search-results-container");
             
             if(query === "") {
@@ -379,22 +389,29 @@
                 return;
             }
 
-            let searchResults = allOrders.filter(order => {
-                let sPhone = String(order.Phone || "").toLowerCase();
-                let sName = String(order.Name || "").toLowerCase();
-                let sId = String(order.OrderID || "").toLowerCase();
-                return sPhone.includes(query) || sName.includes(query) || sId.includes(query);
+            container.innerHTML = "<h3 style='text-align:center; color:#007bff;'>جاري البحث في الأرشيف والطلبات الحالية... ⏳</h3>";
+
+            let url = API_URL + "?action=searchCustomer&query=" + encodeURIComponent(query) + "&t=" + new Date().getTime();
+            
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    container.innerHTML = `<h3 style='text-align:center;'>مفيش أي أوردر متسجل بالبيانات دي: "${query}" ❌</h3>`; 
+                    return;
+                }
+
+                let html = `<h4 style="text-align:center; background:#e8f5e9; padding:10px; border-radius:5px;">✅ لقينا ${data.length} أوردر للعميل ده:</h4>`;
+                data.forEach(order => { 
+                    html += generateOrderCardHTML(order); 
+                });
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                container.innerHTML = "<h3 style='color:red; text-align:center;'>حدث خطأ أثناء البحث في السيرفر!</h3>";
             });
-
-            if (searchResults.length === 0) {
-                container.innerHTML = `<h3 style='text-align:center;'>مفيش أي أوردر متسجل بالبيانات دي: "${query}" ❌</h3>`; 
-                return;
-            }
-
-            let html = `<h4 style="text-align:center; background:#e8f5e9; padding:10px; border-radius:5px;">✅ لقينا ${searchResults.length} أوردر للعميل ده:</h4>`;
-            searchResults.forEach(order => { html += generateOrderCardHTML(order); });
-            container.innerHTML = html;
         }
+        // ------------------------------------------
 
         async function changeStatus(row, newStatus) {
             try {
