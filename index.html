@@ -15,6 +15,13 @@
 
     <style>
         body { font-family: Tahoma, Arial; background: #f2f4f7; padding: 20px; margin: 0; color: #222; }
+        
+        /* 🔥 بانر التثبيت للكمبيوتر والموبايل 🔥 */
+        #desktop-install-banner { display: none; background: linear-gradient(135deg, #28a745, #218838); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        #desktop-install-banner p { margin: 0; font-size: 16px; font-weight: bold; }
+        #desktop-install-banner button { background: #fff; color: #28a745; border: none; padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #desktop-install-banner button:active { transform: scale(0.95); }
+
         .header { text-align: center; background: #222; color: #f0a500; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;}
         .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;}
         .tab-btn { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; background: #ddd; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; min-width: 90px;}
@@ -28,22 +35,24 @@
         .search-bar { flex: 1; padding: 12px; border-radius: 5px; border: 2px solid #f0a500; font-size: 16px; font-family: inherit; outline: none; min-width: 200px;}
         
         /* Order Cards */
-        .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .order-card { background: white; border: 2px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: opacity 0.3s; }
         .order-card.new { border-color: #dc3545; box-shadow: 0 0 10px rgba(220,53,69,0.2); }
         .order-header { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
         .status-badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; }
-        .btn { padding: 8px 15px; margin: 2px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white;}
+        .btn { padding: 10px 15px; margin: 2px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white; transition: 0.2s; flex: 1;}
+        .btn:active { transform: scale(0.95); }
         .btn-prep { background: #f0a500; color: #222; }
         .btn-done { background: #28a745; }
         .btn-cancel { background: #dc3545; }
+        .btn-road { background: #17a2b8; }
         .btn-print { background: #333; color: white; width: 100%; margin-top: 10px; }
         .btn-wa { background: #25D366; color: white; width: 100%; margin-top: 5px; }
-        .details { white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 14px; line-height: 1.6; }
+        .details { white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 14px; line-height: 1.6; border-right: 3px solid #f0a500;}
         
         /* Timers */
-        .timer-badge { background: #e2e3e5; color: #383d41; padding: 6px 10px; border-radius: 5px; font-size: 13px; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .timer-badge { background: #e2e3e5; color: #383d41; padding: 6px 10px; border-radius: 5px; font-size: 13px; font-weight: bold; display: inline-block; margin-top: 5px; border: 1px solid #d6d8db;}
         .timer-alert { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; animation: pulse 1.5s infinite; }
-        .driver-name { color: #004085; font-weight: bold; font-size: 16px; background: #cce5ff; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px; }
+        .driver-name { color: #004085; font-weight: bold; font-size: 16px; background: #cce5ff; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px; border: 1px solid #b8daff;}
 
         /* Tables (Menu & CRM) */
         .data-table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; margin-bottom: 20px;}
@@ -53,7 +62,7 @@
         .toggle-btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 80px;}
         .toggle-on { background: #28a745; color: white; }
         .toggle-off { background: #dc3545; color: white; }
-        .btn-delete-menu { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top:3px;}
+        .btn-delete-menu { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s;}
         .btn-delete-menu:active { transform: scale(0.9); }
         .vip-badge { background: #ffc107; color: #000; padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
         .order-control-btn { background: #f0a500; border: none; border-radius: 3px; font-weight: bold; cursor: pointer; padding: 5px; margin: 0 2px;}
@@ -76,15 +85,11 @@
     </style>
 </head>
 <body>
-    <!-- 🔥 قسم التثبيت (PWA) للكمبيوتر والموبايل 🔥 -->
-    <div id="pwa-install-section" style="display: none; background-color: #e8f5e9; border: 2px solid #28a745; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
-        <p id="pwa-text" style="margin: 0 0 10px 0; font-weight: bold; color: #155724; font-size: 15px;">أضف لوحة الإدارة لجهازك (كمبيوتر أو موبايل) لسهولة الوصول! 💻📱</p>
-        <button id="android-install-btn" class="btn btn-done" style="display: none; margin: 0 auto; width: auto; padding: 10px 20px;">
-            📲 تثبيت كبرنامج (Install App)
-        </button>
-        <div id="ios-instructions" style="display: none; color: #155724; font-size: 14px; line-height: 1.6;">
-            لتثبيت اللوحة على الآيفون: <br> اضغط على زر المشاركة <span style='font-size: 18px; font-weight: bold;'>⍗</span> أسفل الشاشة <br> ثم اختر <strong>Add to Home Screen ➕</strong>
-        </div>
+    
+    <!-- 🔥 بانر التثبيت للكمبيوتر والموبايل 🔥 -->
+    <div id="desktop-install-banner">
+        <p>💻 أضف لوحة الإدارة لجهازك كبرنامج لسهولة الوصول (بدون متصفح)!</p>
+        <button onclick="installApp()">📲 تثبيت الآن</button>
     </div>
 
     <div class="header">
@@ -204,7 +209,7 @@
             <div style="display:flex; flex-direction: column; gap:5px;">
                 <input type="text" id="new-item-price-faisal" class="modal-input" placeholder="سعر فيصل (مثال: 60, 90, 120)">
                 <input type="text" id="new-item-price-naama" class="modal-input" placeholder="سعر نعمة (مثال: 70, 100, 130)">
-                <input type="text" id="new-item-price-nabq" class="modal-input" placeholder="سعر نبق (مثال: 70, 100, 130)">
+                <input type="text" id="new-item-price-nabq" class="modal-input" placeholder="سعر نبq (مثال: 70, 100, 130)">
             </div>
 
             <h4 style="margin: 15px 0 5px; text-align: right; color: #555;">الاختيارات الإضافية للصنف:</h4>
@@ -628,8 +633,9 @@
         // 🔥 الدالة اللي بتحدث حالة الأوردر وتسجل أوقات المطبخ والتوصيل 🔥
         async function changeStatus(docId, newStatus, btn) {
             if(btn) {
-                btn.innerText = "⏳...";
-                btn.disabled = true;
+                btn.innerHTML = "⏳ جاري التحديث...";
+                btn.style.opacity = "0.5";
+                btn.style.pointerEvents = "none";
             }
             try { 
                 let updateData = { status: newStatus };
@@ -647,7 +653,11 @@
                 await db.collection("Orders").doc(docId).update(updateData); 
             } catch(e) { 
                 alert("حصلت مشكلة في تحديث الحالة: " + e.message); 
-                if(btn) { btn.innerText = "حاول تاني"; btn.disabled = false; }
+                if(btn) { 
+                    btn.innerHTML = "إعادة المحاولة 🔄"; 
+                    btn.style.opacity = "1";
+                    btn.style.pointerEvents = "auto";
+                }
             }
         }
 
@@ -727,14 +737,30 @@
                 fixedPhone = "0" + fixedPhone;
             }
 
-            let actionButtonsHtml = isArchive ? 
-                `<div style="color: #6c757d; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">هذا الطلب مؤرشف ولا يمكن تعديل حالته 📦</div>` 
-                :
-                `<div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">
-                    <button class="btn btn-prep" onclick="changeStatus('${order.row}', 'جاري التجهيز ⏳', this)">👨‍🍳 تجهيز</button>
-                    <button class="btn btn-done" onclick="changeStatus('${order.row}', 'تم التوصيل ✅', this)">✅ تقفيل</button>
-                    <button class="btn btn-cancel" onclick="changeStatus('${order.row}', 'ملغي ❌', this)">❌ إلغاء</button>
-                </div>`;
+            // 🔥 زراير التحكم الذكية اللي بتختفي لما متكونش مطلوبة 🔥
+            let actionButtonsHtml = "";
+            
+            if (isArchive) {
+                actionButtonsHtml = `<div style="color: #6c757d; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">هذا الطلب مؤرشف 📦</div>`;
+            } else if (isCanceled) {
+                 actionButtonsHtml = `<div style="color: #dc3545; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">تم الإلغاء ❌</div>`;
+            } else if (order.Status.includes("توصيل")) {
+                 actionButtonsHtml = `<div style="color: #28a745; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">مكتمل ✅</div>`;
+            } else {
+                actionButtonsHtml = `<div style="display:flex; justify-content:space-between; flex-wrap: wrap; gap:5px;">`;
+
+                if (isNew) {
+                    actionButtonsHtml += `<button class="btn btn-prep" onclick="changeStatus('${order.row}', 'جاري التجهيز ⏳', this)">👨‍🍳 بدء التجهيز</button>`;
+                } else if (order.Status.includes("تجهيز")) {
+                    actionButtonsHtml += `<button class="btn btn-road" onclick="changeStatus('${order.row}', 'في الطريق 🛵', this)">🛵 تسليم للطيار</button>`;
+                    actionButtonsHtml += `<button class="btn btn-done" onclick="changeStatus('${order.row}', 'تم التوصيل ✅', this)">✅ تقفيل (استلام من الفرع)</button>`;
+                } else if (order.Status.includes("طريق")) {
+                     actionButtonsHtml += `<button class="btn btn-done" onclick="changeStatus('${order.row}', 'تم التوصيل ✅', this)">✅ تم التوصيل (تقفيل)</button>`;
+                }
+
+                actionButtonsHtml += `<button class="btn btn-cancel" onclick="changeStatus('${order.row}', 'ملغي ❌', this)">❌ إلغاء</button>`;
+                actionButtonsHtml += `</div>`;
+            }
 
             return `
             <div class="order-card ${isNew ? 'new' : ''}" ${isCanceled || isArchive ? 'style="opacity: 0.8; border-color: #999;"' : ''}>
@@ -1009,41 +1035,24 @@
             fetchAdminMenu();     
         }; 
 
-        // 🔥 أوامر تثبيت التطبيق على التليفونات والكمبيوتر (PWA) للوحة الإدارة 🔥
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        const pwaSection = document.getElementById('pwa-install-section');
-        const androidBtn = document.getElementById('android-install-btn');
-        const iosInstructions = document.getElementById('ios-instructions');
-
-        // كشف لو هو بيفتحه من المتصفح (ممكن ينزله)
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; 
-
-        if (isIOS && !isStandalone) {
-            pwaSection.style.display = 'block';
-            iosInstructions.style.display = 'block';
-        }
-
-        let adminPrompt;
+        // 🔥 أمر تثبيت التطبيق بقوة على الكمبيوتر والموبايل 🔥
+        let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); 
-            adminPrompt = e; 
-            
-            // إظهار زرار التثبيت للكمبيوتر والأندرويد
-            pwaSection.style.display = 'block';
-            androidBtn.style.display = 'inline-block';
+            deferredPrompt = e; 
+            document.getElementById('desktop-install-banner').style.display = 'flex';
         });
-        
-        androidBtn.addEventListener('click', async () => {
-            if (adminPrompt) { 
-                adminPrompt.prompt(); 
-                const { outcome } = await adminPrompt.userChoice;
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
-                    pwaSection.style.display = 'none'; 
+                    document.getElementById('desktop-install-banner').style.display = 'none';
                 }
-                adminPrompt = null; 
+                deferredPrompt = null;
             }
-        });
+        }
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
