@@ -53,7 +53,7 @@
         .toggle-btn { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 80px;}
         .toggle-on { background: #28a745; color: white; }
         .toggle-off { background: #dc3545; color: white; }
-        .btn-delete-menu { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .btn-delete-menu { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top:3px;}
         .btn-delete-menu:active { transform: scale(0.9); }
         .vip-badge { background: #ffc107; color: #000; padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
         .order-control-btn { background: #f0a500; border: none; border-radius: 3px; font-weight: bold; cursor: pointer; padding: 5px; margin: 0 2px;}
@@ -76,12 +76,11 @@
     </style>
 </head>
 <body>
-
-    <!-- 🔥 قسم التثبيت (PWA) للإدمن 🔥 -->
+    <!-- 🔥 قسم التثبيت (PWA) للكمبيوتر والموبايل 🔥 -->
     <div id="pwa-install-section" style="display: none; background-color: #e8f5e9; border: 2px solid #28a745; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
-        <p id="pwa-text" style="margin: 0 0 10px 0; font-weight: bold; color: #155724; font-size: 15px;">أضف لوحة الإدارة لموبايلك لسهولة الوصول! 📱</p>
+        <p id="pwa-text" style="margin: 0 0 10px 0; font-weight: bold; color: #155724; font-size: 15px;">أضف لوحة الإدارة لجهازك (كمبيوتر أو موبايل) لسهولة الوصول! 💻📱</p>
         <button id="android-install-btn" class="btn btn-done" style="display: none; margin: 0 auto; width: auto; padding: 10px 20px;">
-            📲 تثبيت التطبيق
+            📲 تثبيت كبرنامج (Install App)
         </button>
         <div id="ios-instructions" style="display: none; color: #155724; font-size: 14px; line-height: 1.6;">
             لتثبيت اللوحة على الآيفون: <br> اضغط على زر المشاركة <span style='font-size: 18px; font-weight: bold;'>⍗</span> أسفل الشاشة <br> ثم اختر <strong>Add to Home Screen ➕</strong>
@@ -619,7 +618,7 @@
             catch(e) { alert("فشل في تحديث المنيو"); }
         }
 
-        // 🔥 الدالة اللي بتحدث حالة الأوردر (بتحط شكل الـ Loading عشان المستخدم ميفكرهاش معلقة) 🔥
+        // 🔥 الدالة اللي بتحدث حالة الأوردر بعد تمرير زرار (this) 🔥
         async function changeStatus(docId, newStatus, btn) {
             if(btn) {
                 btn.innerText = "⏳...";
@@ -992,7 +991,7 @@
             fetchAdminMenu();     
         }; 
 
-        // 🔥 أوامر تثبيت التطبيق على التليفونات (PWA) للوحة الإدارة 🔥
+        // 🔥 أوامر تثبيت التطبيق على التليفونات والكمبيوتر (PWA) للوحة الإدارة 🔥
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isStandalone = window.navigator.standalone === true; 
         const isAndroidStandalone = window.matchMedia('(display-mode: standalone)').matches; 
