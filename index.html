@@ -204,7 +204,7 @@
             <div style="display:flex; flex-direction: column; gap:5px;">
                 <input type="text" id="new-item-price-faisal" class="modal-input" placeholder="سعر فيصل (مثال: 60, 90, 120)">
                 <input type="text" id="new-item-price-naama" class="modal-input" placeholder="سعر نعمة (مثال: 70, 100, 130)">
-                <input type="text" id="new-item-price-nabq" class="modal-input" placeholder="سعر نبq (مثال: 70, 100, 130)">
+                <input type="text" id="new-item-price-nabq" class="modal-input" placeholder="سعر نبق (مثال: 70, 100, 130)">
             </div>
 
             <h4 style="margin: 15px 0 5px; text-align: right; color: #555;">الاختيارات الإضافية للصنف:</h4>
@@ -315,6 +315,13 @@
                 document.getElementById("orders-container").innerHTML = "<h3 style='color:red; text-align:center;'>خطأ في الاتصال بالسيرفر اللحظي!</h3>";
             });
         }
+
+        // 🔥 تحديث لايف للعدادات كل 60 ثانية بدون ريفريش 🔥
+        setInterval(() => {
+            if(document.getElementById('tab-orders').classList.contains('active')) {
+                renderOrders(); 
+            }
+        }, 60000);
 
         async function endOfDay() {
             if(!confirm("⚠️ تحذير: هل أنت متأكد من تقفيل اليوم؟\nهذا الإجراء سيقوم بنقل جميع الطلبات الحالية والملغية إلى الأرشيف وتصفير شاشة الطلبات.")) return;
@@ -618,14 +625,26 @@
             catch(e) { alert("فشل في تحديث المنيو"); }
         }
 
-        // 🔥 الدالة اللي بتحدث حالة الأوردر بعد تمرير زرار (this) 🔥
+        // 🔥 الدالة اللي بتحدث حالة الأوردر وتسجل أوقات المطبخ والتوصيل 🔥
         async function changeStatus(docId, newStatus, btn) {
             if(btn) {
                 btn.innerText = "⏳...";
                 btn.disabled = true;
             }
             try { 
-                await db.collection("Orders").doc(docId).update({ status: newStatus }); 
+                let updateData = { status: newStatus };
+                let now = new Date().getTime();
+
+                // تسجيل أوقات العدادات
+                if (newStatus.includes("تجهيز")) {
+                    updateData.prepTime = now; // بداية وقت المطبخ
+                } else if (newStatus.includes("طريق")) {
+                    updateData.outTime = now; // نهاية المطبخ وبداية التوصيل
+                } else if (newStatus.includes("توصيل")) {
+                    updateData.deliveredTime = now; // نهاية التوصيل
+                }
+
+                await db.collection("Orders").doc(docId).update(updateData); 
             } catch(e) { 
                 alert("حصلت مشكلة في تحديث الحالة: " + e.message); 
                 if(btn) { btn.innerText = "حاول تاني"; btn.disabled = false; }
@@ -708,7 +727,6 @@
                 fixedPhone = "0" + fixedPhone;
             }
 
-            // 🔥 تمرير الـ (this) عشان الزرار يدي استجابة للتحميل 🔥
             let actionButtonsHtml = isArchive ? 
                 `<div style="color: #6c757d; font-weight: bold; text-align: center; padding: 10px; background: #eee; border-radius: 5px;">هذا الطلب مؤرشف ولا يمكن تعديل حالته 📦</div>` 
                 :
@@ -993,12 +1011,13 @@
 
         // 🔥 أوامر تثبيت التطبيق على التليفونات والكمبيوتر (PWA) للوحة الإدارة 🔥
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isStandalone = window.navigator.standalone === true; 
-        const isAndroidStandalone = window.matchMedia('(display-mode: standalone)').matches; 
-
+        
         const pwaSection = document.getElementById('pwa-install-section');
         const androidBtn = document.getElementById('android-install-btn');
         const iosInstructions = document.getElementById('ios-instructions');
+
+        // كشف لو هو بيفتحه من المتصفح (ممكن ينزله)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; 
 
         if (isIOS && !isStandalone) {
             pwaSection.style.display = 'block';
@@ -1009,10 +1028,10 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); 
             adminPrompt = e; 
-            if(!isAndroidStandalone){
-                pwaSection.style.display = 'block';
-                androidBtn.style.display = 'inline-block';
-            }
+            
+            // إظهار زرار التثبيت للكمبيوتر والأندرويد
+            pwaSection.style.display = 'block';
+            androidBtn.style.display = 'inline-block';
         });
         
         androidBtn.addEventListener('click', async () => {
