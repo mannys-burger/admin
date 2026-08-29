@@ -726,15 +726,20 @@
     else if (rawPhone.length === 10 && rawPhone.startsWith('1')) { formattedPhone = '20' + rawPhone; }
 
     // الحل الجذري لتخطي مشكلة الـ Encoding تماماً
-    let p1 = "%D8%A3%D9%87%D9%84%D8%A7%D9%8B%20%D8%A8%D9%8A%D9%83%20%D9%8A%D8%A7%20";
-    let p2 = "%20%D9%81%D9%8A%20Manny's%20Burger%20%F0%9F%8D%94%0A%E2%9C%85%20%D8%AA%D9%85%20%D8%AA%D8%A3%D9%83%D9%8A%D8%AF%20%D8%B7%D9%84%D8%A8%D9%83%20%D8%A8%D9%86%D8%AC%D8%A7%D8%AD%0A%F0%9F%A7%BE%20%D8%B1%D9%82%D9%85%20%D8%A7%D9%84%D8%A3%D9%88%D8%B1%D8%AF%D8%B1%3A%20";
-    let p3 = "%0A%F0%9F%92%B0%20%D8%A5%D8%AC%D9%85%D8%A7%D9%84%D9%8A%20%D8%A7%D9%84%D8%B7%D9%84%D8%A8%3A%20";
-    let p4 = "%20%D8%AC.%D9%85%0A%F0%9F%9B%B5%20%D8%AE%D8%AF%D9%85%D8%A9%20%D8%A7%D9%84%D8%AA%D9%88%D8%B5%D9%8A%D9%84%3A%20";
-    let p5 = "%0A%E2%8F%B3%20%D8%B7%D9%84%D8%A8%D9%83%20%D8%A8%D9%8A%D8%AC%D9%87%D8%B2%20%D8%AF%D9%84%D9%88%D9%82%D8%AA%D9%8A%20%D9%88%D9%87%D9%8A%D9%88%D8%B5%D9%84%D9%83%20%D9%81%D9%8A%20%D8%AE%D9%84%D8%A7%D9%84%2045%20%D9%84%D9%80%2060%20%D8%AF%D9%82%D9%8A%D9%82%D8%A9%20%D8%A8%D8%A7%D9%84%D9%83%D8%AA%D9%8A%D8%B1.%0A%D8%B4%D9%83%D8%B1%D8%A7%D9%8B%20%D9%84%D8%A7%D8%AE%D8%AA%D9%8A%D8%A7%D8%B1%D9%83%20%D9%85%D8%A7%D9%86%D9%8A%D8%B2%20%D8%A8%D8%B1%D8%AC%D8%B1%21%20%F0%9F%8D%94%E2%9D%A4%EF%B8%8F";
+   // الرسالة بالإيموجيز
+    let messageText = `أهلاً بيك يا ${order.Name} في Manny's Burger 🍔🍟
+✅ تم تأكيد طلبك بنجاح
+🧾 رقم الأوردر: ${order.OrderID || 'غير محدد'}
+💰 إجمالي الطلب: ${order.Total} ج.م
+🛵 خدمة التوصيل: ${order.Branch || order.Address}
+⏳ طلبك بيجهز دلوقتي وهيوصلك في خلال 45 لـ 60 دقيقة بالكتير.
+شكراً لاختيارك مانيز برجر! ❤️`;
 
-    let finalEncodedText = p1 + encodeURIComponent(order.Name) + p2 + encodeURIComponent(order.OrderID || 'غير محدد') + p3 + encodeURIComponent(order.Total) + p4 + encodeURIComponent(order.Branch || order.Address) + p5;
-
-    let whatsappUrl = `https://wa.me/${formattedPhone}?text=${finalEncodedText}`;
+    // تشفير الرسالة
+    let finalEncodedText = encodeURIComponent(messageText);
+    
+    // استخدام الرابط المباشر لمنع تلف الإيموجيز
+    let whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${finalEncodedText}`;
     window.open(whatsappUrl, '_blank');
 }
 
