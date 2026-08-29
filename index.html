@@ -713,35 +713,21 @@
             }
             return new Date(); 
         }
-       function sendWhatsApp(orderId) {
-    let order = allOrders.find(o => o.row === orderId);
-    if(!order) {
-        alert("لم يتم العثور على الأوردر!");
-        return;
-    }
-    
-    let phone = order.Phone || "";
-    let formattedPhone = phone.trim();
-    if(formattedPhone.startsWith('0')) {
-        formattedPhone = "+2" + formattedPhone;
-    }
+            function sendCustomerWhatsApp(rowId) {
+            let order = allOrders.find(o => o.row === rowId);
+            if(!order) return;
+            
+            let rawPhone = String(order.Phone || "").replace(/\s+/g, '');
+            let formattedPhone = rawPhone;
+            
+            if (rawPhone.startsWith('+')) { formattedPhone = rawPhone.substring(1); } 
+            else if (rawPhone.startsWith('00')) { formattedPhone = rawPhone.substring(2); } 
+            else if (rawPhone.startsWith('0') && rawPhone.length === 11) { formattedPhone = '20' + rawPhone.substring(1); }
+            else if (rawPhone.length === 10 && rawPhone.startsWith('1')) { formattedPhone = '20' + rawPhone; }
 
-    let waMsg = `أهلاً بيك يا ${order.Name} في *Manny's Burger* 🍔
-
-*تم تأكيد طلبك بنجاح* ✅
-رقم الأوردر: ${order.OrderID}
-------------------------
-
-إجمالي الطلب: *${order.Total}* ج.م
-خدمة التوصيل: 
-
-------------------------
-طلبك بيجهز دلوقتي وهيوصلك في خلال 45 لـ 60 دقيقة بالكتير.
-شكراً لاختيارك مانيز برجر! 🛵`;
-
-    let waLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(waMsg)}`;
-    window.open(waLink, '_blank');
-}
+            let waMsg = `أهلاً بيك يا ${order.Name} في Manny's Burger 🍔\nتم تأكيد طلبك رقم: ${order.OrderID}\nالإجمالي: ${order.Total} LE\nطلبك بيجهز دلوقتي وهيوصلك بالكتير في خلال 45 ل 60 دقيقه و شكرا لطلبك من مانيز برجر! 🛵`;
+            let waLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(waMsg)}`;
+            window.open(waLink, '_blank');
         }
 
         // 🔥 واجهة الكروت المحدثة فيها الزراير الثابتة وحسابات الوقت الدقيقة 🔥
