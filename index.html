@@ -735,6 +735,7 @@
 
 // لو بتستخدم زرار يفتح الواتساب مباشرة استخدم السطر ده عشان الإيموجيز ماتبوظش:
 let whatsappUrl = `https://wa.me/2${order.Phone}?text=${encodeURIComponent(message)}`;
+ window.open(whatsappUrl, '_blank');
         }
 
         // 🔥 واجهة الكروت المحدثة فيها الزراير الثابتة وحسابات الوقت الدقيقة 🔥
